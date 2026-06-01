@@ -1,0 +1,235 @@
+// weddQ — Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum RsvpStatus {
+  HADIR
+  TIDAK
+  RAGU
+}
+
+enum WishStatus {
+  PUBLISHED
+  HIDDEN
+}
+
+enum EventKind {
+  AKAD
+  RESEPSI
+  NGUNDUH_MANTU
+  TASYAKURAN
+  LAINNYA
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  role        Role     @default(USER)
+  phone       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  weddings    Wedding[]
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  style       String                  // "Klasik · Jawa", "Modern · Minimalis", dll.
+  category    String                  // "klasik" | "modern" | "islami" | "rustic" | "floral" | "mewah"
+  priceIdr    Int
+  badge       String?                 // "Bestseller" | "Baru" | null
+  isFeatured  Boolean  @default(false)
+  palette     String                  // "cream" | "maroon" | "sepia" | "paper" | "gold"
+  description String?
+  features    String[]
+  createdAt   DateTime @default(now())
+  weddings    Wedding[]
+}
+
+model Wedding {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  ownerId           String
+  templateId        String?
+  status            String   @default("DRAFT")   // DRAFT | PUBLISHED
+  coverImage        String?
+  eyebrow           String   @default("The Wedding Of")
+  story             String?                       // markdown sederhana
+  quote             String?                       // ayat / kutipan pembuka
+  openingSalutation String?                       // salam pembuka, bebas agama
+  closingSalutation String?                       // salam penutup
+  musicUrl          String?
+  primaryColor      String?                       // override palette
+  waMessageTemplate String?                       // template pesan WA
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  owner         User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  template      Template? @relation(fields: [templateId], references: [id])
+  couple        Couple?
+  events        Event[]
+  gallery       GalleryItem[]
+  guests        Guest[]
+  rsvps         Rsvp[]
+  wishes        Wish[]
+  gifts         GiftAccount[]
+  storyChapters StoryChapter[]
+
+  @@index([ownerId])
+}
+
+model StoryChapter {
+  id          String   @id @default(cuid())
+  weddingId   String
+  title       String
+  body        String
+  photo       String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+model Couple {
+  id              String   @id @default(cuid())
+  weddingId       String   @unique
+  brideName       String
+  brideShort      String
+  brideParents    String?
+  brideOrder      String?                  // "Putri pertama dari ..." dll
+  bridePhoto      String?
+  brideInstagram  String?
+
+  groomName       String
+  groomShort      String
+  groomParents    String?
+  groomOrder      String?
+  groomPhoto      String?
+  groomInstagram  String?
+
+  wedding   Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String     @id @default(cuid())
+  weddingId   String
+  kind        EventKind  @default(RESEPSI)
+  title       String
+  date        DateTime
+  endTime     DateTime?
+  venueName   String
+  address     String
+  mapUrl      String?
+  dressCode   String?
+  notes       String?
+  order       Int        @default(0)
+
+  wedding     Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+model GalleryItem {
+  id          String   @id @default(cuid())
+  weddingId   String
+  url         String
+  caption     String?
+  order       Int      @default(0)
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+model Guest {
+  id          String   @id @default(cuid())
+  weddingId   String
+  name        String
+  slug        String?                 // slugified name, unique per wedding, used in ?to= URLs
+  phone       String?
+  email       String?
+  group       String?                 // "VIP" | "Keluarga" | "Teman" | "Kantor"
+  invitedTo   String?                 // "Akad + Resepsi", dll
+  token       String   @unique @default(cuid())
+  opened      Boolean  @default(false)
+  openedAt    DateTime?
+  waStatus    String?                 // PENDING | SENT | FAILED
+  waSentAt    DateTime?
+  waError     String?
+  createdAt   DateTime @default(now())
+
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  rsvps       Rsvp[]
+
+  @@unique([weddingId, slug])
+  @@index([weddingId])
+}
+
+model Rsvp {
+  id          String      @id @default(cuid())
+  weddingId   String
+  guestId     String?
+  name        String
+  status      RsvpStatus
+  pax         Int         @default(1)
+  session     String?
+  message     String?
+  createdAt   DateTime    @default(now())
+
+  wedding     Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  guest       Guest?      @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@index([weddingId])
+}
+
+model Wish {
+  id          String      @id @default(cuid())
+  weddingId   String
+  name        String
+  message     String
+  status      WishStatus  @default(PUBLISHED)
+  createdAt   DateTime    @default(now())
+
+  wedding     Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+model GiftAccount {
+  id          String   @id @default(cuid())
+  weddingId   String
+  kind        String                  // "BANK" | "EWALLET" | "QRIS"
+  bankName    String                  // "BCA" | "Mandiri" | "GoPay" | "QRIS"
+  number      String
+  holder      String
+  order       Int      @default(0)
+
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  @@index([weddingId])
+}
+
+model AdminLog {
+  id          String   @id @default(cuid())
+  actorEmail  String
+  action      String
+  target      String?
+  meta        Json?
+  createdAt   DateTime @default(now())
+}

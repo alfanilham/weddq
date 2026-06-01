@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.DS_Store
+*.log
+apps/api/uploads/
+apps/web/dist/
+.vite/
+coverage/
+weddq_extracted/
+weddq.zip
