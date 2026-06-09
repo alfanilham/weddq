@@ -13,10 +13,9 @@ Stack didesain dengan tema **klasik-modern Indonesia** (sepia, krem, emas, marun
 # 1. Install dependency
 npm install
 
-# 2. Jalankan Postgres + Adminer via Docker
+# 2. Jalankan Postgres via Docker
 npm run db:up
-# Postgres → localhost:5433  (user: weddq, pass: weddq_secret, db: weddq)
-# Adminer  → http://localhost:8081
+# Postgres → localhost:5433  (user: weddq, db: weddq; password lihat docker-compose.yml / .env)
 
 # 3. Setup .env (lihat apps/api/.env.example)
 cp apps/api/.env.example apps/api/.env
@@ -34,7 +33,7 @@ Setelah jalan:
 
 - Web: <http://localhost:5173>
 - API: <http://localhost:4000>
-- Adminer: <http://localhost:8081>
+- DB GUI (opsional): `npx prisma studio` di `apps/api`
 
 ## Akun seed
 
@@ -57,5 +56,5 @@ apps/
   web/                React + Vite + Tailwind frontend
     src/pages/        Landing, auth, dashboard, templates, preview, admin, public invitation
     src/components/   Shared UI (Nav, Footer, Ornaments)
-docker-compose.yml    Postgres 16 + Adminer
+docker-compose.yml    Postgres 16
 ```

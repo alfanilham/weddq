@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: weddq
-      POSTGRES_PASSWORD: weddq_secret
+      POSTGRES_PASSWORD: ab6f2959838dfad5efe1ac79885fb4a62414
       POSTGRES_DB: weddq
     ports:
       - "5433:5432"
@@ -16,16 +16,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  adminer:
-    image: adminer:latest
-    container_name: weddq_adminer
-    restart: unless-stopped
-    ports:
-      - "8081:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
 
 volumes:
   weddq_pgdata:
