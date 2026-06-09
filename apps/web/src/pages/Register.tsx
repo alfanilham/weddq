@@ -29,7 +29,7 @@ export default function RegisterPage() {
     <AuthShell
       eyebrow="Daftar · weddQ"
       title={<><em>Mulai rangkai</em><br />kisah Anda</>}
-      subtitle="Buat akun gratis dalam satu menit. Anda bisa langsung mencoba editor undangan tanpa kartu kredit."
+      subtitle="Buat akun dalam satu menit. Anda bisa langsung mencoba editor undangan tanpa kartu kredit."
       side={
         <>
           <p className="font-serif text-4xl leading-snug">
@@ -40,7 +40,7 @@ export default function RegisterPage() {
               "Editor visual: ubah konten tanpa coding",
               "Tautan unik untuk setiap tamu, pantau siapa yang telah membuka",
               "RSVP, buku tamu, dan amplop digital terintegrasi",
-              "Domain weddq.id gratis seumur paket",
+              "Domain weddq.id seumur paket",
             ].map((f) => (
               <li key={f} className="flex gap-3 opacity-90">
                 <span className="text-gold-soft">◆</span>
@@ -94,7 +94,7 @@ export default function RegisterPage() {
         {err && <div className="text-sm text-red-700 bg-red-50 border border-red-200 px-3 py-2 rounded">{err}</div>}
 
         <button type="submit" disabled={busy} className="btn w-full justify-center">
-          {busy ? "Membuat akun…" : "Buat Akun Gratis"}
+          {busy ? "Membuat akun…" : "Buat Akun"}
         </button>
 
         <p className="text-xs text-sepia-mute text-center">

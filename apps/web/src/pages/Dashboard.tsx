@@ -1,30 +1,38 @@
 import { FormEvent, useEffect, useState } from "react";
-import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { CmsShell } from "@/components/CmsShell";
 import { api, extractError } from "@/lib/api";
 import { Divider, OrnamentRow } from "@/components/Ornaments";
+import { useAuth } from "@/store/auth";
 
 type Wedding = {
   id: string;
   slug: string;
   status: string;
+  package?: "PRO" | "EKSKLUSIF";
   eyebrow: string;
+  coverImage?: string | null;
   story?: string | null;
   quote?: string | null;
   openingSalutation?: string | null;
   closingSalutation?: string | null;
+  musicUrl?: string | null;
   waMessageTemplate?: string | null;
   primaryColor?: string | null;
   templateId?: string | null;
+  activeFrom?: string | null;
+  activeUntil?: string | null;
   couple: {
     brideName: string;
     brideShort: string;
     brideParents?: string | null;
     brideInstagram?: string | null;
+    bridePhoto?: string | null;
     groomName: string;
     groomShort: string;
     groomParents?: string | null;
     groomInstagram?: string | null;
+    groomPhoto?: string | null;
   };
   template?: { name: string; slug: string; palette: string } | null;
   events: Array<any>;
@@ -55,14 +63,15 @@ function useActiveWedding() {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { list, active, reload } = useActiveWedding();
 
   if (list === null) return <div className="p-10 text-sepia-soft">Memuat dasbor…</div>;
-  if (list.length === 0) return <EmptyState onCreated={reload} />;
-  if (!active) return <div className="p-10 text-sepia-soft">Memuat undangan…</div>;
+  if (list.length > 0 && !active) return <div className="p-10 text-sepia-soft">Memuat undangan…</div>;
 
   const titleMap: Record<string, string> = {
-    "/dashboard": "Ringkasan",
+    "/dashboard": active ? "Ringkasan" : "Paket Undangan",
     "/dashboard/content": "Editor Konten",
     "/dashboard/journey": "Perjalanan Kami",
     "/dashboard/events": "Acara",
@@ -72,21 +81,49 @@ export default function DashboardPage() {
     "/dashboard/wishes": "Ucapan & Doa",
     "/dashboard/gift": "Amplop Digital",
     "/dashboard/settings": "Pengaturan",
+    "/dashboard/admin": "Ringkasan Platform",
+    "/dashboard/admin/new": "Buat Undangan Klien",
+    "/dashboard/admin/users": "Pengguna",
+    "/dashboard/admin/weddings": "Semua Undangan",
+    "/dashboard/admin/domains": "Domain Kustom",
+    "/dashboard/admin/templates": "Template",
+    "/dashboard/admin/whatsapp": "Bot WhatsApp",
+    "/dashboard/admin/logs": "Log Aktivitas",
   };
 
   return (
-    <CmsShellWithLinks active={active} titleMap={titleMap}>
+    <CmsShellWithLinks active={active} isAdmin={isAdmin} titleMap={titleMap}>
       <Routes>
-        <Route index element={<OverviewView w={active} onChanged={reload} />} />
-        <Route path="content" element={<ContentView w={active} onChanged={reload} />} />
-        <Route path="journey" element={<JourneyView w={active} onChanged={reload} />} />
-        <Route path="events" element={<EventsView w={active} onChanged={reload} />} />
-        <Route path="gallery" element={<GalleryView w={active} onChanged={reload} />} />
-        <Route path="guests" element={<GuestsView w={active} onChanged={reload} />} />
-        <Route path="rsvp" element={<RsvpView w={active} />} />
-        <Route path="wishes" element={<WishesView w={active} />} />
-        <Route path="gift" element={<GiftView w={active} onChanged={reload} />} />
-        <Route path="settings" element={<SettingsView w={active} onChanged={reload} />} />
+        {active ? (
+          <>
+            <Route index element={<OverviewView w={active} onChanged={reload} />} />
+            <Route path="content" element={<ContentView w={active} onChanged={reload} />} />
+            <Route path="journey" element={<JourneyView w={active} onChanged={reload} />} />
+            <Route path="events" element={<EventsView w={active} onChanged={reload} />} />
+            <Route path="gallery" element={<GalleryView w={active} onChanged={reload} />} />
+            <Route path="guests" element={<GuestsView w={active} onChanged={reload} />} />
+            <Route path="rsvp" element={<RsvpView w={active} />} />
+            <Route path="wishes" element={<WishesView w={active} />} />
+            <Route path="gift" element={<GiftView w={active} onChanged={reload} />} />
+            <Route path="settings" element={<SettingsView w={active} onChanged={reload} />} />
+          </>
+        ) : (
+          <Route index element={isAdmin ? <Navigate to="/dashboard/admin" replace /> : <PackagePlansView />} />
+        )}
+        {isAdmin && (
+          <>
+            <Route path="admin" element={<AdminOverview />} />
+            <Route path="admin/new" element={<AdminCreateClient />} />
+            <Route path="admin/users" element={<AdminUsers />} />
+            <Route path="admin/weddings" element={<AdminWeddings />} />
+            <Route path="admin/domains" element={<AdminDomains />} />
+            <Route path="admin/templates" element={<AdminTemplates />} />
+            <Route path="admin/whatsapp" element={<AdminWhatsApp />} />
+            <Route path="admin/logs" element={<AdminLogs />} />
+          </>
+        )}
+        {/* Unknown path (incl. /dashboard/admin/* for non-admin) → user dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </CmsShellWithLinks>
   );
@@ -94,19 +131,20 @@ export default function DashboardPage() {
 
 function CmsShellWithLinks({
   active,
+  isAdmin,
   children,
   titleMap,
 }: {
-  active: Wedding;
+  active: Wedding | null;
+  isAdmin: boolean;
   children: React.ReactNode;
   titleMap: Record<string, string>;
 }) {
   const loc = useLocation();
   const title = titleMap[loc.pathname] ?? "Dasbor";
-  return (
-    <CmsShell
-      title={title}
-      links={[
+
+  const weddingLinks = active
+    ? [
         { to: "/dashboard", label: "Dasbor", icon: "◆", group: "Undangan" },
         { to: "/dashboard/content", label: "Editor Konten", icon: "✎", group: "Undangan" },
         { to: "/dashboard/journey", label: "Perjalanan Kami", icon: "❦", group: "Undangan", count: active.storyChapters.length },
@@ -117,22 +155,45 @@ function CmsShellWithLinks({
         { to: "/dashboard/wishes", label: "Ucapan & Doa", icon: '"', group: "Tamu", count: active._count.wishes },
         { to: "/dashboard/gift", label: "Amplop Digital", icon: "⌘", group: "Lainnya" },
         { to: "/dashboard/settings", label: "Pengaturan", icon: "⚙", group: "Lainnya" },
-      ]}
+      ]
+    : isAdmin
+      ? [] // admin tidak membuat undangan untuk dirinya sendiri; pakai "Buat Undangan" di grup Platform
+      : [{ to: "/dashboard", label: "Paket Undangan", icon: "✦", group: "Undangan" }];
+
+  const adminLinks = isAdmin
+    ? [
+        { to: "/dashboard/admin", label: "Ringkasan Platform", icon: "◆", group: "Platform" },
+        { to: "/dashboard/admin/new", label: "Buat Undangan", icon: "✚", group: "Platform" },
+        { to: "/dashboard/admin/users", label: "Pengguna", icon: "☷", group: "Platform" },
+        { to: "/dashboard/admin/weddings", label: "Semua Undangan", icon: "✦", group: "Platform" },
+        { to: "/dashboard/admin/domains", label: "Domain Kustom", icon: "🌐", group: "Platform" },
+        { to: "/dashboard/admin/templates", label: "Template", icon: "◇", group: "Platform" },
+        { to: "/dashboard/admin/whatsapp", label: "Bot WhatsApp", icon: "✆", group: "Platform" },
+        { to: "/dashboard/admin/logs", label: "Log Aktivitas", icon: "≡", group: "Platform" },
+      ]
+    : [];
+
+  return (
+    <CmsShell
+      title={title}
+      links={[...weddingLinks, ...adminLinks]}
       topbar={
-        <>
-          <div className="hidden md:flex items-center gap-2 rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-mono">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            {window.location.host}/{active.slug}
-            <button
-              onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${active.slug}`)}
-              className="text-sepia-mute hover:text-sepia ml-1"
-              title="Salin"
-            >
-              ⎘
-            </button>
-          </div>
-          <Link to={`/${active.slug}`} target="_blank" className="btn-sm btn-ghost">Lihat Undangan ↗</Link>
-        </>
+        active ? (
+          <>
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-line bg-paper px-3 py-1.5 text-xs font-mono">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+              {window.location.host}/{active.slug}
+              <button
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${active.slug}`)}
+                className="text-sepia-mute hover:text-sepia ml-1"
+                title="Salin"
+              >
+                ⎘
+              </button>
+            </div>
+            <Link to={`/${active.slug}`} target="_blank" className="btn-sm btn-ghost">Lihat Undangan ↗</Link>
+          </>
+        ) : null
       }
     >
       {children}
@@ -146,9 +207,19 @@ function OverviewView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
   const ready = computeReadiness(w);
   const primary = w.events[0];
   const days = primary ? Math.max(0, Math.floor((new Date(primary.date).getTime() - Date.now()) / 86400000)) : null;
+  const editLocked = w.activeUntil && Date.now() > new Date(w.activeUntil).getTime();
 
   return (
     <div className="space-y-8">
+      {editLocked && (
+        <div className="rounded-sm border border-amber-300 bg-amber-50 text-amber-900 p-5">
+          <div className="font-serif text-lg">Masa edit undangan telah berakhir</div>
+          <p className="text-sm mt-1">
+            Undangan Anda tetap tayang dan dapat diakses tamu, namun penyuntingan kini terkunci
+            {w.activeUntil ? ` (sejak ${new Date(w.activeUntil).toLocaleDateString("id-ID")})` : ""}. Hubungi admin untuk perpanjangan.
+          </p>
+        </div>
+      )}
       <div className="rounded-sm bg-paper border border-line p-8 grid lg:grid-cols-[1.4fr_1fr] gap-8 bracketed">
         <div>
           <div className="text-[11px] uppercase tracking-[0.22em] text-gold-deep">SELAMAT DATANG KEMBALI</div>
@@ -297,15 +368,18 @@ function ContentView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
     quote: w.quote ?? "",
     openingSalutation: w.openingSalutation ?? "",
     closingSalutation: w.closingSalutation ?? "",
+    musicUrl: w.musicUrl ?? "",
     couple: {
       brideName: w.couple.brideName,
       brideShort: w.couple.brideShort,
       brideParents: w.couple.brideParents ?? "",
       brideInstagram: w.couple.brideInstagram ?? "",
+      bridePhoto: w.couple.bridePhoto ?? "",
       groomName: w.couple.groomName,
       groomShort: w.couple.groomShort,
       groomParents: w.couple.groomParents ?? "",
       groomInstagram: w.couple.groomInstagram ?? "",
+      groomPhoto: w.couple.groomPhoto ?? "",
     },
   });
   const [saved, setSaved] = useState(false);
@@ -365,6 +439,22 @@ function ContentView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
         </div>
       </Card>
 
+      <Card title="Musik Latar" hint="Tempel tautan YouTube. Lagu akan terputar otomatis (muted) dengan tombol mengambang untuk mengaktifkan suara.">
+        <FormRow label="Tautan YouTube">
+          <input
+            className="cms-input"
+            placeholder="https://www.youtube.com/watch?v=…"
+            value={form.musicUrl}
+            onChange={(e) => setForm({ ...form, musicUrl: e.target.value })}
+          />
+        </FormRow>
+        {form.musicUrl && (
+          <p className="text-xs text-sepia-mute mt-2">
+            Tip: pastikan video YouTube dapat diembed (tidak dibatasi pemilik). Format yang didukung: <code className="font-mono">youtube.com/watch?v=ID</code>, <code className="font-mono">youtu.be/ID</code>, dan ID 11 karakter langsung.
+          </p>
+        )}
+      </Card>
+
       <Card title="Mempelai Putri">
         <div className="grid md:grid-cols-2 gap-4">
           <FormRow label="Nama lengkap">
@@ -379,6 +469,10 @@ function ContentView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
           <FormRow label="Instagram">
             <input className="cms-input" placeholder="@username" value={form.couple.brideInstagram} onChange={(e) => setForm({ ...form, couple: { ...form.couple, brideInstagram: e.target.value } })} />
           </FormRow>
+          <div className="md:col-span-2">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-sepia-mute mb-1.5">Foto mempelai putri</div>
+            <ImageField value={form.couple.bridePhoto} onChange={(v) => setForm({ ...form, couple: { ...form.couple, bridePhoto: v } })} />
+          </div>
         </div>
       </Card>
 
@@ -396,6 +490,10 @@ function ContentView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
           <FormRow label="Instagram">
             <input className="cms-input" value={form.couple.groomInstagram} onChange={(e) => setForm({ ...form, couple: { ...form.couple, groomInstagram: e.target.value } })} />
           </FormRow>
+          <div className="md:col-span-2">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-sepia-mute mb-1.5">Foto mempelai putra</div>
+            <ImageField value={form.couple.groomPhoto} onChange={(v) => setForm({ ...form, couple: { ...form.couple, groomPhoto: v } })} />
+          </div>
         </div>
       </Card>
 
@@ -503,19 +601,10 @@ function JourneyView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
                 ))}
               </div>
             </FormRow>
-            <FormRow label="Foto pendukung (opsional)">
-              <input
-                className="cms-input"
-                placeholder="https://… atau biarkan kosong"
-                value={form.photo}
-                onChange={(e) => setForm({ ...form, photo: e.target.value })}
-              />
-              {form.photo && (
-                <div className="mt-3 aspect-[3/4] w-full max-w-[180px] overflow-hidden rounded border border-line bg-cream-deep">
-                  <img src={form.photo} alt="" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </FormRow>
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-sepia-mute mb-1.5">Foto pendukung (opsional)</div>
+              <ImageField square={false} value={form.photo} onChange={(v) => setForm({ ...form, photo: v })} />
+            </div>
           </div>
           <div className="space-y-4">
             <FormRow label="Isi cerita">
@@ -691,40 +780,70 @@ function EventsView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
 }
 
 function GalleryView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
-  const [url, setUrl] = useState("");
+  const [photo, setPhoto] = useState("");
   const [caption, setCaption] = useState("");
+  const [busy, setBusy] = useState(false);
+  const cover = w.coverImage ?? null;
+
   async function add(e: FormEvent) {
     e.preventDefault();
-    await api.post(`/weddings/by-id/${w.id}/gallery`, { url, caption: caption || null });
-    setUrl(""); setCaption("");
-    onChanged();
+    if (!photo) return;
+    setBusy(true);
+    try {
+      await api.post(`/weddings/by-id/${w.id}/gallery`, { url: photo, caption: caption || null });
+      setPhoto(""); setCaption("");
+      onChanged();
+    } finally { setBusy(false); }
   }
   async function remove(id: string) {
     if (!confirm("Hapus foto ini?")) return;
     await api.delete(`/weddings/by-id/${w.id}/gallery/${id}`);
     onChanged();
   }
+  async function setCover(url: string | null) {
+    await api.put(`/weddings/by-id/${w.id}`, { coverImage: url });
+    onChanged();
+  }
+
   return (
     <div className="space-y-6">
-      <Card title="Tambah Foto" hint="Tempel URL foto (bisa dari Unsplash, Google Drive yang dipublik, atau hosting Anda).">
-        <form onSubmit={add} className="grid md:grid-cols-[2fr_1.2fr_auto] gap-3">
-          <input required className="cms-input" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
-          <input className="cms-input" placeholder="Caption (opsional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
-          <button className="btn">Tambahkan</button>
+      <Card title="Tambah Foto" hint="Unggah dari perangkat atau tempel URL (Unsplash, Google Drive publik, dll.).">
+        <form onSubmit={add} className="space-y-4">
+          <ImageField square={false} value={photo} onChange={setPhoto} />
+          <div className="grid md:grid-cols-[1fr_auto] gap-3">
+            <input className="cms-input" placeholder="Caption (opsional)" value={caption} onChange={(e) => setCaption(e.target.value)} />
+            <button disabled={busy || !photo} className="btn">{busy ? "Menambah…" : "Tambahkan ke Galeri"}</button>
+          </div>
         </form>
       </Card>
-      <Card title={`Galeri (${w.gallery.length})`}>
+
+      <Card title={`Galeri (${w.gallery.length})`} hint="Klik ✦ Jadikan Sampul untuk memakai foto sebagai latar belakang cover undangan (sebelum dibuka).">
         {w.gallery.length === 0 ? (
           <div className="py-10 text-center text-sepia-soft">Belum ada foto. Galeri minimal 4 foto direkomendasikan.</div>
         ) : (
           <div className="grid sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {w.gallery.map((g: any) => (
-              <div key={g.id} className="relative group rounded overflow-hidden border border-line">
-                <img src={g.url} alt={g.caption ?? ""} className="aspect-square object-cover w-full" />
-                <button onClick={() => remove(g.id)} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-sepia text-cream-soft text-xs rounded-full px-2 py-1 transition">Hapus</button>
-                {g.caption && <div className="text-xs text-sepia-soft px-2 py-1 bg-paper">{g.caption}</div>}
-              </div>
-            ))}
+            {w.gallery.map((g: any) => {
+              const isCover = cover === g.url;
+              return (
+                <div key={g.id} className={`relative group rounded-lg overflow-hidden border ${isCover ? "border-gold-deep ring-2 ring-gold-deep/40" : "border-line"}`}>
+                  <img src={g.url} alt={g.caption ?? ""} className="aspect-square object-cover w-full" />
+                  {isCover && (
+                    <span className="absolute top-2 left-2 bg-gold-deep text-cream-soft text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5">✦ Sampul</span>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 p-2 flex items-center gap-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition">
+                    <button
+                      type="button"
+                      onClick={() => setCover(isCover ? null : g.url)}
+                      className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${isCover ? "bg-cream-soft text-sepia" : "bg-gold-deep text-cream-soft"}`}
+                    >
+                      {isCover ? "Batalkan" : "✦ Jadikan Sampul"}
+                    </button>
+                    <button type="button" onClick={() => remove(g.id)} className="ml-auto text-[10px] uppercase tracking-wider rounded-full px-2 py-1 bg-sepia text-cream-soft">Hapus</button>
+                  </div>
+                  {g.caption && <div className="text-xs text-sepia-soft px-2 py-1 bg-paper">{g.caption}</div>}
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
@@ -846,7 +965,7 @@ function GuestsView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
 
   const botConnected = waStatus?.status === "CONNECTED";
   const botStatusLabel: Record<string, { text: string; tone: string }> = {
-    CONNECTED: { text: `Bot weddQ aktif${waStatus?.connectedNumber ? ` (${waStatus.connectedNumber})` : ""}`, tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    CONNECTED: { text: "Bot WhatsApp weddQ aktif", tone: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     AWAITING_QR: { text: "Bot weddQ menunggu QR. Buka panel Admin → WhatsApp.", tone: "bg-amber-50 text-amber-700 border-amber-200" },
     CONNECTING: { text: "Bot weddQ sedang menghubungkan…", tone: "bg-amber-50 text-amber-700 border-amber-200" },
     DISCONNECTED: { text: "Bot weddQ belum terhubung. Hanya mode WA pribadi yang tersedia.", tone: "bg-cream-deep text-sepia-mute border-line" },
@@ -1162,7 +1281,12 @@ function SettingsView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
   const [templateId, setTemplateId] = useState(w.templateId ?? "");
   const [status, setStatus] = useState(w.status);
   const [busy, setBusy] = useState(false);
+  const pkg = w.package ?? "PRO";
+  const isEksklusif = pkg === "EKSKLUSIF";
   useEffect(() => { api.get("/templates").then((r) => setTemplates(r.data)); }, []);
+
+  // Paket PRO hanya boleh template ≤ 100rb; Eksklusif boleh semua. Template aktif tetap ditampilkan.
+  const allowed = templates.filter((t) => isEksklusif || t.priceIdr <= 100000 || t.id === w.templateId);
 
   async function save() {
     setBusy(true);
@@ -1185,16 +1309,24 @@ function SettingsView({ w, onChanged }: { w: Wedding; onChanged: () => void }) {
         </div>
       </Card>
 
-      <Card title="Template Aktif">
+      <Card title="Template Aktif" hint={isEksklusif ? "Paket Eksklusif: seluruh template tersedia." : "Paket Pro: menampilkan template Pro. Tingkatkan ke Eksklusif untuk template premium."} topRight={<span className={`status-pill ${isEksklusif ? "ragu" : "hadir"}`}>Paket {isEksklusif ? "Eksklusif" : "Pro"}</span>}>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[480px] overflow-y-auto pr-2">
-          {templates.map((t) => (
-            <button key={t.id} onClick={() => setTemplateId(t.id)} className={`rounded border p-4 text-left ${templateId === t.id ? "border-sepia bg-sepia text-cream-soft" : "border-line bg-paper hover:bg-cream-deep"}`}>
-              <div className="font-serif text-lg">{t.name}</div>
-              <div className="text-xs opacity-70 mt-1">{t.style}</div>
-              <div className="text-xs font-mono mt-2">Rp {(t.priceIdr / 1000).toFixed(0)}rb</div>
-            </button>
-          ))}
+          {allowed.map((t) => {
+            const eks = t.priceIdr > 100000;
+            return (
+              <button key={t.id} onClick={() => setTemplateId(t.id)} className={`rounded border p-4 text-left ${templateId === t.id ? "border-sepia bg-sepia text-cream-soft" : "border-line bg-paper hover:bg-cream-deep"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-serif text-lg">{t.name}</div>
+                  {eks && <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full ${templateId === t.id ? "bg-cream-soft text-sepia" : "bg-maroon/10 text-maroon"}`}>Eksklusif</span>}
+                </div>
+                <div className="text-xs opacity-70 mt-1">{t.style}</div>
+              </button>
+            );
+          })}
         </div>
+        {!isEksklusif && (
+          <p className="mt-4 text-xs text-sepia-mute">Ingin memakai template Eksklusif (mis. Lumina, Noctura)? Hubungi admin untuk meningkatkan ke paket Eksklusif.</p>
+        )}
       </Card>
 
       <button disabled={busy} onClick={save} className="btn">{busy ? "Menyimpan…" : "Simpan Pengaturan"}</button>
@@ -1226,7 +1358,171 @@ function FormRow({ label, full, children }: { label: string; full?: boolean; chi
   );
 }
 
-function EmptyState({ onCreated }: { onCreated: () => void }) {
+/** Perkecil gambar di browser → data URL JPEG (tanpa storage backend).
+ *  square=true → center-crop 1:1; else jaga rasio asli. */
+async function downscaleImage(file: File, opts: { square?: boolean; size?: number; quality?: number } = {}): Promise<string> {
+  const { square = false, size = square ? 720 : 1280, quality = 0.82 } = opts;
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = dataUrl;
+  });
+  const canvas = document.createElement("canvas");
+  if (square) {
+    const side = Math.min(img.width, img.height);
+    const out = Math.min(size, side);
+    canvas.width = out; canvas.height = out;
+    canvas.getContext("2d")!.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, out, out);
+  } else {
+    let { width, height } = img;
+    const longest = Math.max(width, height);
+    if (longest > size) { const s = size / longest; width = Math.round(width * s); height = Math.round(height * s); }
+    canvas.width = width; canvas.height = height;
+    canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+  }
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
+function ImageField({ value, onChange, square = true }: { value: string; onChange: (v: string) => void; square?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setErr("Berkas harus berupa gambar."); return; }
+    setBusy(true); setErr(null);
+    try {
+      onChange(await downscaleImage(file, { square }));
+    } catch {
+      setErr("Gagal memproses gambar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isData = value.startsWith("data:");
+  return (
+    <div className="flex items-start gap-4">
+      <div className={`${square ? "w-24 h-24" : "w-28 h-[84px]"} rounded-md overflow-hidden bg-cream-deep border border-line flex items-center justify-center shrink-0`}>
+        {value ? <img src={value} alt="" className="w-full h-full object-cover" /> : <span className="text-[10px] text-sepia-mute">{square ? "1 : 1" : "foto"}</span>}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className="btn-ghost btn-sm cursor-pointer inline-flex">
+            {busy ? "Memproses…" : value ? "Ganti Foto" : "Unggah Foto"}
+            <input type="file" accept="image/*" className="hidden" onChange={onFile} disabled={busy} />
+          </label>
+          {value && (
+            <button type="button" onClick={() => onChange("")} className="text-xs text-maroon hover:underline">Hapus</button>
+          )}
+        </div>
+        <input
+          className="cms-input mt-2"
+          placeholder="atau tempel URL foto…"
+          value={isData ? "" : value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        {err && <div className="text-xs text-red-700 mt-1">{err}</div>}
+        <p className="text-[11px] text-sepia-mute mt-1">JPG/PNG, otomatis dikecilkan{square ? ". Rasio 1:1 (persegi) paling pas." : "."}</p>
+      </div>
+    </div>
+  );
+}
+
+const WA_ADMIN = "6283197715855";
+
+function PackagePlansView() {
+  const { user } = useAuth();
+  const plans = [
+    {
+      name: "Pro", price: "69", unit: "rb", featured: false,
+      desc: "Undangan digital lengkap untuk pernikahan Anda",
+      features: [
+        "Akses seluruh template Pro",
+        "Sampai 400 tamu undangan",
+        "Galeri 20 foto dan cerita",
+        "RSVP dan buku tamu",
+        "Amplop digital (3 rekening)",
+        "Subdomain weddq.id/nama-anda",
+      ],
+    },
+    {
+      name: "Eksklusif", price: "110", unit: "rb", featured: true,
+      desc: "Seluruh fitur premium dengan domain pribadi",
+      features: [
+        "Seluruh benefit Pro",
+        "Akses seluruh template Eksklusif",
+        "Tamu tak terbatas",
+        "Galeri foto & video tak terbatas",
+        "Animasi transisi sinematik",
+        "Domain pribadi .my.id (dikelola weddQ)",
+      ],
+    },
+  ];
+
+  function buyLink(plan: string) {
+    const msg = `Halo weddQ, saya ingin membeli paket *${plan}* undangan pernikahan.\nEmail akun saya: ${user?.email ?? "-"}`;
+    return `https://wa.me/${WA_ADMIN}?text=${encodeURIComponent(msg)}`;
+  }
+
+  return (
+    <div className="max-w-4xl">
+      <div className="mb-8">
+        <span className="label-soft">Mulai</span>
+        <h2 className="font-serif text-3xl md:text-4xl mt-2 text-sepia">Pilih paket undangan Anda</h2>
+        <p className="mt-3 text-sepia-soft max-w-xl">
+          Pilih paket yang sesuai, lalu lakukan pembayaran melalui admin. Setelah dikonfirmasi, undangan
+          Anda akan diaktifkan dan Anda dapat langsung mengisi isinya dari dasbor ini.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {plans.map((p) => (
+          <div key={p.name} className={`relative rounded-2xl p-8 flex flex-col border ${p.featured ? "bg-sepia text-cream-soft border-sepia" : "bg-paper border-line"}`}>
+            {p.featured && (
+              <span className="absolute -top-3 left-8 rounded-full bg-gold-deep text-cream-soft text-[10px] uppercase tracking-[0.18em] px-3 py-1 font-medium">
+                Paling Diminati
+              </span>
+            )}
+            <div className={`font-serif text-3xl ${p.featured ? "text-cream-soft" : "text-sepia"}`}>{p.name}</div>
+            <p className={`mt-1.5 text-sm ${p.featured ? "text-cream-soft/75" : "text-sepia-soft"}`}>{p.desc}</p>
+            <div className={`mt-6 flex items-baseline gap-1 font-serif ${p.featured ? "text-cream-soft" : "text-sepia"}`}>
+              <span className="text-lg">Rp</span>
+              <span className="text-5xl">{p.price}</span>
+              <span className={`text-xl ${p.featured ? "text-cream-soft/60" : "text-sepia-mute"}`}>{p.unit}</span>
+            </div>
+            <ul className="mt-6 space-y-2.5 flex-1">
+              {p.features.map((f) => (
+                <li key={f} className={`flex gap-2.5 text-sm ${p.featured ? "text-cream-soft/90" : "text-sepia-soft"}`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={p.featured ? "#C9A961" : "#A88339"} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M20 6 9 17l-5-5" /></svg>
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href={buyLink(p.name)} target="_blank" rel="noreferrer" className={`mt-8 ${p.featured ? "btn-gold" : "btn"} justify-center`}>
+              Beli Paket {p.name}
+            </a>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-xs text-sepia-mute">
+        Pembayaran dikonfirmasi manual oleh admin. Setelah aktif, masa edit undangan ditentukan sesuai paket.
+      </p>
+    </div>
+  );
+}
+
+function CreateWeddingView({ onCreated }: { onCreated: () => void }) {
   const nav = useNavigate();
   const [form, setForm] = useState({ brideShort: "", brideName: "", groomShort: "", groomName: "" });
   const [templates, setTemplates] = useState<any[]>([]);
@@ -1246,38 +1542,712 @@ function EmptyState({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <CmsShell title="Buat Undangan Baru" links={[{ to: "/dashboard", label: "Dasbor", icon: "◆" }]}>
-      <div className="max-w-2xl">
-        <div className="card-paper bracketed p-8">
-          <span className="sec-num">MULAI</span>
-          <h2 className="font-serif text-3xl md:text-4xl mt-2">Mari buat undangan pertama Anda</h2>
-          <Divider width={200} className="mt-4" />
-          <p className="text-sepia-soft mt-4">Isi nama pasangan dan pilih template untuk memulai. Anda bisa menyesuaikan semuanya nanti.</p>
-          <form onSubmit={submit} className="mt-7 grid md:grid-cols-2 gap-4">
-            <FormRow label="Nama panggilan mempelai putri">
-              <input required className="cms-input" value={form.brideShort} onChange={(e) => setForm({ ...form, brideShort: e.target.value })} />
-            </FormRow>
-            <FormRow label="Nama lengkap mempelai putri">
-              <input required className="cms-input" value={form.brideName} onChange={(e) => setForm({ ...form, brideName: e.target.value })} />
-            </FormRow>
-            <FormRow label="Nama panggilan mempelai putra">
-              <input required className="cms-input" value={form.groomShort} onChange={(e) => setForm({ ...form, groomShort: e.target.value })} />
-            </FormRow>
-            <FormRow label="Nama lengkap mempelai putra">
-              <input required className="cms-input" value={form.groomName} onChange={(e) => setForm({ ...form, groomName: e.target.value })} />
-            </FormRow>
-            <FormRow label="Template" full>
-              <select className="cms-input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
-                {templates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.style}</option>)}
-              </select>
-            </FormRow>
-            <div className="md:col-span-2">
-              <button disabled={busy} className="btn">{busy ? "Membuat…" : "Buat Undangan"}</button>
-            </div>
-          </form>
-        </div>
+    <div className="max-w-2xl">
+      <div className="card-paper bracketed p-8">
+        <span className="sec-num">MULAI</span>
+        <h2 className="font-serif text-3xl md:text-4xl mt-2">Mari buat undangan pertama Anda</h2>
+        <Divider width={200} className="mt-4" />
+        <p className="text-sepia-soft mt-4">Isi nama pasangan dan pilih template untuk memulai. Anda bisa menyesuaikan semuanya nanti.</p>
+        <form onSubmit={submit} className="mt-7 grid md:grid-cols-2 gap-4">
+          <FormRow label="Nama panggilan mempelai putri">
+            <input required className="cms-input" value={form.brideShort} onChange={(e) => setForm({ ...form, brideShort: e.target.value })} />
+          </FormRow>
+          <FormRow label="Nama lengkap mempelai putri">
+            <input required className="cms-input" value={form.brideName} onChange={(e) => setForm({ ...form, brideName: e.target.value })} />
+          </FormRow>
+          <FormRow label="Nama panggilan mempelai putra">
+            <input required className="cms-input" value={form.groomShort} onChange={(e) => setForm({ ...form, groomShort: e.target.value })} />
+          </FormRow>
+          <FormRow label="Nama lengkap mempelai putra">
+            <input required className="cms-input" value={form.groomName} onChange={(e) => setForm({ ...form, groomName: e.target.value })} />
+          </FormRow>
+          <FormRow label="Template" full>
+            <select className="cms-input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+              {templates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.style}</option>)}
+            </select>
+          </FormRow>
+          <div className="md:col-span-2">
+            <button disabled={busy} className="btn">{busy ? "Membuat…" : "Buat Undangan"}</button>
+          </div>
+        </form>
       </div>
       <style>{`.cms-input{width:100%;border:1px solid rgba(58,42,28,0.18);background:#FCF7EB;padding:11px 14px;border-radius:6px;font-size:14px;font-family:inherit}.cms-input:focus{outline:none;border-color:#A88339;background:#F4EAD5}`}</style>
-    </CmsShell>
+    </div>
+  );
+}
+
+/* ============================ ADMIN / PLATFORM VIEWS ============================ */
+
+function AdminOverview() {
+  const [stats, setStats] = useState<any>(null);
+  useEffect(() => { api.get("/admin/stats").then((r) => setStats(r.data)); }, []);
+  if (!stats) return <div className="text-sepia-soft">Memuat…</div>;
+  const t = stats.totals;
+  return (
+    <div className="space-y-8">
+      <div className="rounded-sm bg-paper border border-line p-7 bracketed">
+        <span className="sec-num">RINGKASAN PLATFORM</span>
+        <h2 className="font-serif text-3xl mt-2">Panel Platform weddQ</h2>
+        <p className="text-sepia-soft mt-3 max-w-xl">
+          Pantau pertumbuhan platform, undangan terbaru yang diterbitkan, serta aktivitas pengguna dari satu tempat.
+        </p>
+      </div>
+      <div className="grid sm:grid-cols-2 xl:grid-cols-6 gap-5">
+        <Metric label="Pengguna" value={t.users} color="#A88339" />
+        <Metric label="Undangan" value={t.weddings} color="#B8736D" />
+        <Metric label="Aktif Publish" value={t.published} color="#4F9F6B" />
+        <Metric label="Total RSVP" value={t.rsvps} color="#6E3A38" />
+        <Metric label="Total Ucapan" value={t.wishes} color="#8E544E" />
+        <Metric label="Template" value={t.templates} color="#A88339" />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-paper border border-line rounded-sm p-6">
+          <h3 className="font-serif text-xl">Pendaftar Terbaru</h3>
+          <table className="w-full text-sm mt-3">
+            <tbody>
+              {stats.recentUsers.map((u: any) => (
+                <tr key={u.id} className="border-b border-line/60">
+                  <td className="py-3">
+                    <div className="font-medium">{u.name}</div>
+                    <div className="text-xs text-sepia-mute">{u.email}</div>
+                  </td>
+                  <td className="text-xs">{u.role}</td>
+                  <td className="text-right text-xs text-sepia-mute">{new Date(u.createdAt).toLocaleDateString("id-ID")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-paper border border-line rounded-sm p-6">
+          <h3 className="font-serif text-xl">Undangan Terbaru</h3>
+          <table className="w-full text-sm mt-3">
+            <tbody>
+              {stats.recentWeddings.map((w: any) => (
+                <tr key={w.id} className="border-b border-line/60">
+                  <td className="py-3">
+                    <div className="font-medium">{w.couple?.brideShort} & {w.couple?.groomShort}</div>
+                    <div className="text-xs text-sepia-mute">/{w.slug}</div>
+                  </td>
+                  <td className="text-xs">{w.status}</td>
+                  <td className="text-right text-xs text-sepia-mute">{w.owner?.email}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, color }: { label: string; value: any; color?: string }) {
+  return (
+    <div className="bg-paper border border-line rounded-sm p-5">
+      <div className="text-[11px] uppercase tracking-[0.18em] text-sepia-mute">{label}</div>
+      <div className="font-serif text-4xl mt-2">{value}</div>
+      <div className="h-1 mt-3 rounded" style={{ background: `${color ?? "#A88339"}22` }}>
+        <div className="h-full rounded" style={{ width: "65%", background: color ?? "#A88339" }} />
+      </div>
+    </div>
+  );
+}
+
+type CreateDone = { mode: "new" | "existing"; email: string; password?: string; slug: string; waSent: boolean; waError: string | null };
+
+function AdminCreateClient() {
+  const [mode, setMode] = useState<"new" | "existing">("new");
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", phone: "", userId: "", package: "PRO",
+    brideShort: "", brideName: "", groomShort: "", groomName: "", templateId: "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<CreateDone | null>(null);
+
+  useEffect(() => {
+    api.get("/templates").then((r) => { setTemplates(r.data); setForm((f) => ({ ...f, templateId: r.data[0]?.id ?? "" })); });
+    api.get("/admin/users").then((r) => setUsers(r.data.filter((u: any) => u.role !== "ADMIN")));
+  }, []);
+
+  function set<K extends keyof typeof form>(k: K, v: string) { setForm((f) => ({ ...f, [k]: v })); }
+  function genPassword() {
+    const p = Math.random().toString(36).slice(2, 10) + Math.floor(Math.random() * 90 + 10);
+    set("password", p);
+  }
+  function resetForm() {
+    setForm({ name: "", email: "", password: "", phone: "", userId: "", package: "PRO", brideShort: "", brideName: "", groomShort: "", groomName: "", templateId: templates[0]?.id ?? "" });
+  }
+
+  const allowedTemplates = templates.filter((t) => form.package === "EKSKLUSIF" || t.priceIdr <= 100000);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setErr(null);
+    try {
+      const couple = {
+        package: form.package,
+        brideShort: form.brideShort, brideName: form.brideName,
+        groomShort: form.groomShort, groomName: form.groomName,
+        templateId: form.templateId || null,
+      };
+      if (mode === "new") {
+        const r = await api.post("/admin/clients", { name: form.name, email: form.email, password: form.password, phone: form.phone, ...couple });
+        setDone({ mode: "new", email: r.data.credentials.email, password: r.data.credentials.password, slug: r.data.wedding.slug, waSent: r.data.waSent, waError: r.data.waError ?? null });
+      } else {
+        const r = await api.post("/admin/weddings/assign", { userId: form.userId, ...couple });
+        setDone({ mode: "existing", email: r.data.user.email, slug: r.data.wedding.slug, waSent: r.data.waSent, waError: r.data.waError ?? null });
+      }
+    } catch (e) { setErr(extractError(e)); }
+    finally { setBusy(false); }
+  }
+
+  if (done) {
+    return (
+      <div className="max-w-xl">
+        <div className="card-paper bracketed p-8">
+          <span className="sec-num">UNDANGAN DIBUAT</span>
+          <h2 className="font-serif text-3xl mt-2">{done.mode === "new" ? "Akun klien siap diserahkan" : "Undangan ditambahkan ke akun user"}</h2>
+          <p className="text-sepia-soft mt-3 text-sm">
+            {done.mode === "new"
+              ? "Kredensial & info setup telah dikirim ke WhatsApp klien. Cadangan tersedia di bawah bila diperlukan."
+              : "Info undangan telah dikirim ke WhatsApp user. User login dengan akun yang sudah ada untuk mengisinya."}
+          </p>
+          <div className={`mt-4 rounded-sm p-3 text-sm border ${done.waSent ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-amber-50 border-amber-200 text-amber-900"}`}>
+            {done.waSent
+              ? "✓ Info terkirim ke WhatsApp."
+              : `⚠ Belum terkirim via WhatsApp${done.waError ? ` (${done.waError})` : ""}.`}
+          </div>
+          <div className="mt-4 space-y-2 bg-cream-soft border border-line rounded-sm p-5 text-sm">
+            <div className="flex justify-between gap-4"><span className="text-sepia-mute">Email</span><span className="font-mono">{done.email}</span></div>
+            {done.password && <div className="flex justify-between gap-4"><span className="text-sepia-mute">Password</span><span className="font-mono">{done.password}</span></div>}
+            <div className="flex justify-between gap-4"><span className="text-sepia-mute">Undangan</span><a className="font-mono text-gold-deep hover:underline" href={`/${done.slug}`} target="_blank" rel="noreferrer">/{done.slug}</a></div>
+          </div>
+          <div className="mt-6 flex gap-3">
+            {done.password && (
+              <button
+                onClick={() => navigator.clipboard.writeText(`Email: ${done.email}\nPassword: ${done.password}\nUndangan: ${window.location.origin}/${done.slug}`)}
+                className="btn btn-sm"
+              >Salin Kredensial</button>
+            )}
+            <button onClick={() => { setDone(null); resetForm(); }} className="btn-ghost btn-sm">Buat Lagi</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const tab = (m: "new" | "existing", label: string) => (
+    <button
+      type="button"
+      onClick={() => { setMode(m); setErr(null); }}
+      className={`flex-1 text-sm py-2.5 rounded-full border transition ${mode === m ? "bg-sepia text-cream-soft border-sepia" : "border-line text-sepia-soft hover:border-sepia"}`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="max-w-2xl">
+      <div className="card-paper bracketed p-8">
+        <span className="sec-num">BUAT UNDANGAN UNTUK KLIEN</span>
+        <h2 className="font-serif text-3xl md:text-4xl mt-2">Buat undangan klien</h2>
+        <Divider width={200} className="mt-4" />
+
+        <div className="mt-5 flex gap-2">
+          {tab("new", "Buat akun baru")}
+          {tab("existing", "User yang sudah ada")}
+        </div>
+        <p className="text-sepia-soft mt-3 text-sm">
+          {mode === "new"
+            ? "Buat akun klien (email & password) sekaligus undangannya. Kredensial dikirim via WhatsApp."
+            : "Tambahkan undangan ke akun user yang sudah terdaftar. User login dengan akunnya sendiri."}
+        </p>
+
+        {err && <div className="mt-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{err}</div>}
+
+        <form onSubmit={submit} className="mt-6 grid md:grid-cols-2 gap-4">
+          {mode === "new" ? (
+            <>
+              <div className="md:col-span-2 text-[11px] uppercase tracking-[0.18em] text-gold-deep">Akun Klien</div>
+              <FormRow label="Nama klien">
+                <input required className="cms-input" value={form.name} onChange={(e) => set("name", e.target.value)} />
+              </FormRow>
+              <FormRow label="No. WhatsApp (tujuan kredensial)">
+                <input required className="cms-input" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="62…" />
+              </FormRow>
+              <FormRow label="Email login">
+                <input required type="email" className="cms-input" value={form.email} onChange={(e) => set("email", e.target.value)} />
+              </FormRow>
+              <FormRow label="Password">
+                <div className="flex gap-2">
+                  <input required className="cms-input" value={form.password} onChange={(e) => set("password", e.target.value)} />
+                  <button type="button" onClick={genPassword} className="btn-ghost btn-sm whitespace-nowrap">Acak</button>
+                </div>
+              </FormRow>
+            </>
+          ) : (
+            <>
+              <div className="md:col-span-2 text-[11px] uppercase tracking-[0.18em] text-gold-deep">Pilih User</div>
+              <FormRow label="User terdaftar" full>
+                <select required className="cms-input" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
+                  <option value="">— Pilih user —</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name} · {u.email}{u.phone ? "" : " (tanpa WA)"}</option>
+                  ))}
+                </select>
+              </FormRow>
+            </>
+          )}
+
+          <div className="md:col-span-2 mt-2 text-[11px] uppercase tracking-[0.18em] text-gold-deep">Paket &amp; Undangan</div>
+          <div className="md:col-span-2">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-sepia-mute mb-1.5">Paket dibeli</div>
+            <div className="flex gap-2">
+              {(["PRO", "EKSKLUSIF"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, package: p, templateId: (p === "EKSKLUSIF" || (templates.find((t) => t.id === f.templateId)?.priceIdr ?? 0) <= 100000) ? f.templateId : (templates.find((t) => t.priceIdr <= 100000)?.id ?? "") }))}
+                  className={`flex-1 text-sm py-2.5 rounded-lg border transition ${form.package === p ? "bg-sepia text-cream-soft border-sepia" : "border-line text-sepia-soft hover:border-sepia"}`}
+                >
+                  {p === "PRO" ? "Pro" : "Eksklusif"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <FormRow label="Panggilan mempelai putri">
+            <input required className="cms-input" value={form.brideShort} onChange={(e) => set("brideShort", e.target.value)} />
+          </FormRow>
+          <FormRow label="Nama lengkap mempelai putri">
+            <input required className="cms-input" value={form.brideName} onChange={(e) => set("brideName", e.target.value)} />
+          </FormRow>
+          <FormRow label="Panggilan mempelai putra">
+            <input required className="cms-input" value={form.groomShort} onChange={(e) => set("groomShort", e.target.value)} />
+          </FormRow>
+          <FormRow label="Nama lengkap mempelai putra">
+            <input required className="cms-input" value={form.groomName} onChange={(e) => set("groomName", e.target.value)} />
+          </FormRow>
+          <FormRow label={`Template (${form.package === "EKSKLUSIF" ? "semua" : "Pro"})`} full>
+            <select className="cms-input" value={form.templateId} onChange={(e) => set("templateId", e.target.value)}>
+              {allowedTemplates.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.style}{t.priceIdr > 100000 ? " · Eksklusif" : ""}</option>)}
+            </select>
+          </FormRow>
+          <div className="md:col-span-2">
+            <button disabled={busy} className="btn">{busy ? "Membuat…" : mode === "new" ? "Buat Akun & Undangan" : "Assign Undangan ke User"}</button>
+          </div>
+        </form>
+      </div>
+      <style>{`.cms-input{width:100%;border:1px solid rgba(58,42,28,0.18);background:#FCF7EB;padding:11px 14px;border-radius:6px;font-size:14px;font-family:inherit}.cms-input:focus{outline:none;border-color:#A88339;background:#F4EAD5}`}</style>
+    </div>
+  );
+}
+
+function AdminUsers() {
+  const [list, setList] = useState<any[]>([]);
+  useEffect(() => { api.get("/admin/users").then((r) => setList(r.data)); }, []);
+  return (
+    <div className="bg-paper border border-line rounded-sm p-6">
+      <h3 className="font-serif text-xl mb-4">Semua Pengguna ({list.length})</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-sepia-mute">
+            <tr className="border-b border-line"><th className="py-2">Nama</th><th>Email</th><th>Peran</th><th>Undangan</th><th>Bergabung</th></tr>
+          </thead>
+          <tbody>
+            {list.map((u) => (
+              <tr key={u.id} className="border-b border-line/60">
+                <td className="py-3 font-medium">{u.name}</td>
+                <td>{u.email}</td>
+                <td><span className={`status-pill ${u.role === "ADMIN" ? "ragu" : "hadir"}`}>{u.role}</span></td>
+                <td>{u._count?.weddings ?? 0}</td>
+                <td className="text-xs text-sepia-mute">{new Date(u.createdAt).toLocaleDateString("id-ID")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function toDateInput(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10); // yyyy-mm-dd
+}
+function isLocked(w: any) {
+  return w.activeUntil && Date.now() > new Date(w.activeUntil).getTime();
+}
+
+function AdminWeddings() {
+  const [list, setList] = useState<any[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [win, setWin] = useState<{ from: string; until: string }>({ from: "", until: "" });
+
+  async function load() { const r = await api.get("/admin/weddings"); setList(r.data); }
+  useEffect(() => { load(); }, []);
+
+  async function toggleStatus(w: any) {
+    setBusy(w.id); setErr(null);
+    try {
+      await api.patch(`/admin/weddings/${w.id}/status`, { status: w.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED" });
+      await load();
+    } catch (e) { setErr(extractError(e)); } finally { setBusy(null); }
+  }
+  async function remove(w: any) {
+    if (!confirm(`Hapus undangan ${w.couple?.brideShort} & ${w.couple?.groomShort} (/${w.slug})? Tindakan ini permanen.`)) return;
+    setBusy(w.id); setErr(null);
+    try { await api.delete(`/admin/weddings/${w.id}`); await load(); }
+    catch (e) { setErr(extractError(e)); } finally { setBusy(null); }
+  }
+  function openWindow(w: any) {
+    setEditId(w.id);
+    setWin({ from: toDateInput(w.activeFrom), until: toDateInput(w.activeUntil) });
+  }
+  async function saveWindow(w: any) {
+    setBusy(w.id); setErr(null);
+    try {
+      await api.patch(`/admin/weddings/${w.id}/active-window`, {
+        activeFrom: win.from ? new Date(`${win.from}T00:00:00`).toISOString() : null,
+        activeUntil: win.until ? new Date(`${win.until}T23:59:59`).toISOString() : null,
+      });
+      setEditId(null);
+      await load();
+    } catch (e) { setErr(extractError(e)); } finally { setBusy(null); }
+  }
+  async function togglePackage(w: any) {
+    const next = (w.package ?? "PRO") === "EKSKLUSIF" ? "PRO" : "EKSKLUSIF";
+    setBusy(w.id); setErr(null);
+    try { await api.patch(`/admin/weddings/${w.id}/package`, { package: next }); await load(); }
+    catch (e) { setErr(extractError(e)); } finally { setBusy(null); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-baseline justify-between">
+        <h3 className="font-serif text-xl">Semua Undangan ({list.length})</h3>
+        <span className="text-xs text-sepia-mute">Masa aktif = batas user mengedit (undangan tetap tayang setelah lewat)</span>
+      </div>
+      {err && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{err}</div>}
+
+      <div className="space-y-3">
+        {list.map((w) => {
+          const locked = isLocked(w);
+          return (
+            <div key={w.id} className="bg-paper border border-line rounded-sm p-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="min-w-[170px]">
+                  <div className="font-serif text-lg">{w.couple?.brideShort} &amp; {w.couple?.groomShort}</div>
+                  <div className="text-xs text-sepia-mute font-mono">/{w.slug} · {w.owner?.email}</div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <span className={`status-pill ${(w.package ?? "PRO") === "EKSKLUSIF" ? "ragu" : "hadir"}`}>{(w.package ?? "PRO") === "EKSKLUSIF" ? "Eksklusif" : "Pro"}</span>
+                  <span className={`status-pill ${w.status === "PUBLISHED" ? "hadir" : "ragu"}`}>{w.status}</span>
+                  {locked ? (
+                    <span className="status-pill tidak">EDIT TERKUNCI</span>
+                  ) : w.activeUntil ? (
+                    <span className="text-sepia-mute">Edit s/d {new Date(w.activeUntil).toLocaleDateString("id-ID")}</span>
+                  ) : (
+                    <span className="text-sepia-mute">Tanpa batas</span>
+                  )}
+                  {w.customDomain && <span className="font-mono text-gold-deep">{w.customDomain}</span>}
+                </div>
+                <div className="text-xs font-mono text-sepia-mute ml-auto">{w._count?.guests}/{w._count?.rsvps}/{w._count?.wishes}</div>
+                <div className="flex gap-2 flex-wrap">
+                  <a href={`/${w.slug}`} target="_blank" rel="noreferrer" className="btn-ghost btn-sm">Lihat</a>
+                  <button disabled={busy === w.id} onClick={() => toggleStatus(w)} className="btn-ghost btn-sm">
+                    {w.status === "PUBLISHED" ? "Tarik" : "Publish"}
+                  </button>
+                  <button onClick={() => (editId === w.id ? setEditId(null) : openWindow(w))} className="btn-ghost btn-sm">Masa Aktif</button>
+                  <button disabled={busy === w.id} onClick={() => togglePackage(w)} className="btn-ghost btn-sm" title="Ubah paket Pro/Eksklusif">
+                    → {(w.package ?? "PRO") === "EKSKLUSIF" ? "Pro" : "Eksklusif"}
+                  </button>
+                  <button disabled={busy === w.id} onClick={() => remove(w)} className="btn-ghost btn-sm text-maroon">Hapus</button>
+                </div>
+              </div>
+
+              {editId === w.id && (
+                <div className="mt-4 pt-4 border-t border-line flex flex-wrap items-end gap-4">
+                  <label className="text-xs text-sepia-soft">
+                    <div className="mb-1 uppercase tracking-[0.16em] text-sepia-mute">Aktif dari (opsional)</div>
+                    <input type="date" value={win.from} onChange={(e) => setWin((p) => ({ ...p, from: e.target.value }))} className="border border-line bg-cream-soft px-3 py-2 rounded text-sm" />
+                  </label>
+                  <label className="text-xs text-sepia-soft">
+                    <div className="mb-1 uppercase tracking-[0.16em] text-sepia-mute">Edit sampai (tenggat)</div>
+                    <input type="date" value={win.until} onChange={(e) => setWin((p) => ({ ...p, until: e.target.value }))} className="border border-line bg-cream-soft px-3 py-2 rounded text-sm" />
+                  </label>
+                  <button disabled={busy === w.id} onClick={() => saveWindow(w)} className="btn btn-sm">{busy === w.id ? "…" : "Simpan"}</button>
+                  <button onClick={() => setWin({ from: "", until: "" })} className="btn-ghost btn-sm">Kosongkan</button>
+                  <span className="text-xs text-sepia-mute">Kosong = tanpa batas. Setelah tenggat, user tak bisa edit; undangan tetap tayang.</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AdminDomains() {
+  const [data, setData] = useState<{ cloudflareConfigured: boolean; cnameTarget: string; weddings: any[] } | null>(null);
+  const [edit, setEdit] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    const r = await api.get("/admin/domains");
+    setData(r.data);
+  }
+  useEffect(() => { load(); }, []);
+
+  const statusTone: Record<string, string> = {
+    ACTIVE: "hadir", PENDING: "ragu", ERROR: "tidak", NONE: "",
+  };
+
+  async function save(id: string) {
+    const domain = (edit[id] ?? "").trim().toLowerCase();
+    if (!domain) return;
+    setBusy(id); setErr(null);
+    try {
+      await api.put(`/admin/weddings/${id}/domain`, { customDomain: domain });
+      setEdit((p) => { const n = { ...p }; delete n[id]; return n; });
+      await load();
+    } catch (e) { setErr(extractError(e)); }
+    finally { setBusy(null); }
+  }
+  async function refresh(id: string) {
+    setBusy(id); setErr(null);
+    try { await api.post(`/admin/weddings/${id}/domain/refresh`); await load(); }
+    catch (e) { setErr(extractError(e)); }
+    finally { setBusy(null); }
+  }
+  async function remove(id: string) {
+    if (!confirm("Hapus domain custom dari undangan ini?")) return;
+    setBusy(id); setErr(null);
+    try { await api.delete(`/admin/weddings/${id}/domain`); await load(); }
+    catch (e) { setErr(extractError(e)); }
+    finally { setBusy(null); }
+  }
+
+  if (!data) return <div className="text-sepia-soft">Memuat…</div>;
+
+  const eksklusif = data.weddings.filter((w) => (w.template?.priceIdr ?? 0) > 100000 || w.customDomain);
+  const others = data.weddings.filter((w) => !((w.template?.priceIdr ?? 0) > 100000 || w.customDomain));
+
+  return (
+    <div className="space-y-6">
+      {/* Status Cloudflare */}
+      <div className="rounded-sm bg-paper border border-line p-6 bracketed">
+        <span className="sec-num">DOMAIN KUSTOM · PAKET EKSKLUSIF</span>
+        <h2 className="font-serif text-2xl mt-2">Cloudflare for SaaS</h2>
+        <div className="mt-3 flex items-center gap-3 flex-wrap text-sm">
+          <span className={`status-pill ${data.cloudflareConfigured ? "hadir" : "ragu"}`}>
+            {data.cloudflareConfigured ? "API Terhubung" : "Mode Manual"}
+          </span>
+          <span className="text-sepia-soft">
+            {data.cloudflareConfigured
+              ? "Custom hostname & sertifikat dibuat otomatis (proxied) saat domain diset."
+              : "Set CF_API_TOKEN & CF_SAAS_ZONE_ID di server agar otomatis. Saat ini domain hanya disimpan."}
+          </span>
+        </div>
+        <div className="mt-4 text-sm text-sepia-soft">
+          Arahkan DNS domain <code className="font-mono text-xs">.my.id</code> (CNAME, proxied / orange-cloud) ke:
+          <code className="ml-2 font-mono text-xs bg-cream-deep px-2 py-1 rounded">{data.cnameTarget}</code>
+        </div>
+      </div>
+
+      {err && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3">{err}</div>}
+
+      {/* Daftar Eksklusif */}
+      <div className="bg-paper border border-line rounded-sm p-6">
+        <h3 className="font-serif text-xl mb-4">Undangan Eksklusif ({eksklusif.length})</h3>
+        {eksklusif.length === 0 && <div className="text-sm text-sepia-soft py-4">Belum ada undangan paket Eksklusif.</div>}
+        <div className="space-y-3">
+          {eksklusif.map((w) => (
+            <div key={w.id} className="border border-line rounded-sm p-4 flex flex-wrap items-center gap-4">
+              <div className="min-w-[180px]">
+                <div className="font-serif text-lg">{w.couple?.brideShort} &amp; {w.couple?.groomShort}</div>
+                <div className="text-xs text-sepia-mute font-mono">/{w.slug} · {w.owner?.email}</div>
+              </div>
+
+              <div className="flex-1 min-w-[240px]">
+                {w.customDomain ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <a href={`https://${w.customDomain}`} target="_blank" rel="noreferrer" className="font-mono text-sm text-gold-deep hover:underline">{w.customDomain}</a>
+                    <span className={`status-pill ${statusTone[w.domainStatus] ?? ""}`}>{w.domainStatus}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={edit[w.id] ?? ""}
+                      onChange={(e) => setEdit((p) => ({ ...p, [w.id]: e.target.value }))}
+                      placeholder="nama.my.id"
+                      className="flex-1 border border-line bg-cream-soft px-3 py-2 rounded text-sm font-mono"
+                    />
+                    <button disabled={busy === w.id} onClick={() => save(w.id)} className="btn btn-sm">{busy === w.id ? "…" : "Set"}</button>
+                  </div>
+                )}
+              </div>
+
+              {w.customDomain && (
+                <div className="flex gap-2">
+                  <button disabled={busy === w.id} onClick={() => refresh(w.id)} className="btn-ghost btn-sm" title="Cek status terbaru">⟳ Cek</button>
+                  <button disabled={busy === w.id} onClick={() => remove(w.id)} className="btn-ghost btn-sm">Hapus</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Non-eksklusif (referensi) */}
+      {others.length > 0 && (
+        <details className="bg-cream-soft border border-line rounded-sm p-5">
+          <summary className="cursor-pointer font-serif text-lg">Undangan lain ({others.length}) — bukan Eksklusif</summary>
+          <div className="mt-3 text-sm text-sepia-soft space-y-1">
+            {others.map((w) => (
+              <div key={w.id} className="flex items-center gap-3">
+                <span className="font-serif">{w.couple?.brideShort} &amp; {w.couple?.groomShort}</span>
+                <span className="text-xs font-mono text-sepia-mute">/{w.slug}</span>
+                <span className="text-xs ml-auto">{w.template?.name ?? "—"}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function AdminTemplates() {
+  const [list, setList] = useState<any[]>([]);
+  useEffect(() => { api.get("/templates").then((r) => setList(r.data)); }, []);
+  return (
+    <div className="bg-paper border border-line rounded-sm p-6">
+      <h3 className="font-serif text-xl mb-4">Pustaka Template ({list.length})</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-sepia-mute">
+            <tr className="border-b border-line"><th className="py-2">Nama</th><th>Slug</th><th>Kategori</th><th>Palette</th><th>Harga</th><th>Badge</th></tr>
+          </thead>
+          <tbody>
+            {list.map((t) => (
+              <tr key={t.id} className="border-b border-line/60">
+                <td className="py-3 font-medium">{t.name}</td>
+                <td className="text-xs font-mono">{t.slug}</td>
+                <td className="text-xs">{t.category}</td>
+                <td className="text-xs">{t.palette}</td>
+                <td className="text-xs font-mono">Rp {(t.priceIdr / 1000).toFixed(0)}rb</td>
+                <td>{t.badge && <span className="status-pill hadir">{t.badge}</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminLogs() {
+  const [list, setList] = useState<any[]>([]);
+  useEffect(() => { api.get("/admin/logs").then((r) => setList(r.data)); }, []);
+  return (
+    <div className="bg-paper border border-line rounded-sm p-6">
+      <h3 className="font-serif text-xl mb-4">Log Aktivitas</h3>
+      <div className="divide-y divide-line">
+        {list.length === 0 && <div className="py-8 text-center text-sepia-soft">Belum ada log.</div>}
+        {list.map((l) => (
+          <div key={l.id} className="py-3 flex items-center gap-4 text-sm">
+            <span className="text-xs font-mono text-sepia-mute w-40">{new Date(l.createdAt).toLocaleString("id-ID")}</span>
+            <span className="font-medium">{l.action}</span>
+            <span className="text-xs text-sepia-mute">{l.actorEmail}</span>
+            <span className="text-xs ml-auto">{l.target ?? ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminWhatsApp() {
+  const [s, setS] = useState<{ status: string; qrDataUrl?: string; connectedNumber?: string; lastError?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    const r = await api.get("/admin/whatsapp/status");
+    setS(r.data);
+  }
+  useEffect(() => { load(); const i = setInterval(load, 4000); return () => clearInterval(i); }, []);
+
+  async function connect() {
+    setBusy(true);
+    try { await api.post("/admin/whatsapp/connect"); await load(); }
+    finally { setBusy(false); }
+  }
+  async function disconnect() {
+    if (!confirm("Putuskan koneksi bot WhatsApp weddQ?")) return;
+    setBusy(true);
+    try { await api.post("/admin/whatsapp/disconnect"); await load(); }
+    finally { setBusy(false); }
+  }
+
+  if (!s) return <div className="text-sepia-soft">Memuat…</div>;
+
+  const statusMap: Record<string, { label: string; tone: string; desc: string }> = {
+    DISABLED: { label: "Dinonaktifkan", tone: "bg-cream-deep text-sepia-mute", desc: "Bot dimatikan via env WA_DISABLED=true." },
+    DISCONNECTED: { label: "Belum terhubung", tone: "bg-cream-deep text-sepia-mute", desc: "Klik tombol Hubungkan untuk memulai. QR code akan muncul untuk Anda scan." },
+    CONNECTING: { label: "Menghubungkan…", tone: "bg-amber-50 text-amber-700", desc: "Tunggu sebentar, sistem sedang menyambung ke WhatsApp." },
+    AWAITING_QR: { label: "Menunggu QR Scan", tone: "bg-amber-50 text-amber-700", desc: "Buka WhatsApp di HP weddQ → Perangkat Tertaut → Tautkan Perangkat → scan QR di bawah." },
+    CONNECTED: { label: "Terhubung", tone: "bg-emerald-50 text-emerald-700", desc: `Bot weddQ aktif${s.connectedNumber ? ` pada nomor ${s.connectedNumber}` : ""}.` },
+    FAILED: { label: "Error", tone: "bg-red-50 text-red-700", desc: s.lastError ?? "Koneksi gagal." },
+  };
+  const info = statusMap[s.status] ?? statusMap.DISCONNECTED;
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div className="bg-paper border border-line rounded-sm p-7 bracketed">
+        <span className="sec-num">BOT WHATSAPP WEDDQ</span>
+        <h2 className="font-serif text-3xl mt-2">Status Koneksi</h2>
+        <div className={`inline-block mt-4 px-3 py-1 text-xs uppercase tracking-wider rounded-full ${info.tone}`}>{info.label}</div>
+        <p className="text-sepia-soft text-sm mt-3 max-w-xl">{info.desc}</p>
+
+        <div className="mt-6 flex gap-3 flex-wrap">
+          {(s.status === "DISCONNECTED" || s.status === "FAILED") && (
+            <button disabled={busy} onClick={connect} className="btn">{busy ? "Menyambung…" : "Hubungkan Bot"}</button>
+          )}
+          {s.status === "CONNECTED" && (
+            <button disabled={busy} onClick={disconnect} className="btn-ghost">{busy ? "Memutus…" : "Putuskan & Hapus Sesi"}</button>
+          )}
+        </div>
+      </div>
+
+      {s.qrDataUrl && s.status === "AWAITING_QR" && (
+        <div className="bg-paper border border-line rounded-sm p-7 text-center bracketed">
+          <h3 className="font-serif text-xl">Scan QR Code</h3>
+          <p className="text-sm text-sepia-soft mt-2 mb-6">
+            Di HP weddQ: WhatsApp → ⋮ → Perangkat Tertaut → Tautkan Perangkat
+          </p>
+          <img src={s.qrDataUrl} alt="QR Code" className="mx-auto" style={{ width: 280, height: 280 }} />
+          <p className="text-[11px] text-sepia-mute mt-4">QR code di-refresh otomatis. Halaman ini akan berpindah ke status Terhubung setelah scan berhasil.</p>
+        </div>
+      )}
+
+      <div className="bg-cream-soft border border-line rounded-sm p-6">
+        <h3 className="font-serif text-lg">Catatan Penggunaan</h3>
+        <ul className="text-sm text-sepia-soft mt-3 space-y-2 list-disc list-inside">
+          <li>Gunakan nomor WhatsApp khusus untuk bot weddQ, jangan nomor pribadi.</li>
+          <li>Sesi tersimpan di disk (<code className="font-mono text-xs">data/whatsapp-auth/</code>) sehingga restart server tidak butuh scan ulang.</li>
+          <li>WhatsApp dapat memblokir nomor jika dianggap spam. Beri jeda antar pengiriman dan hindari mengirim ke nomor yang tidak menyimpan kontak weddQ.</li>
+          <li>Bila bot tidak terhubung, pengguna tetap bisa pakai opsi "WA Saya" yang membuka WhatsApp pribadi pengguna lewat tautan wa.me.</li>
+        </ul>
+      </div>
+    </div>
   );
 }

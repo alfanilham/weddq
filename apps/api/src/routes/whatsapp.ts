@@ -9,7 +9,8 @@ const router = Router();
 
 router.get("/status", authRequired, (_req, res) => {
   const s = getStatus();
-  res.json({ status: s.status, connectedNumber: s.connectedNumber });
+  // Hanya status koneksi; nomor bot tidak diekspos ke pengguna.
+  res.json({ status: s.status });
 });
 
 export default router;

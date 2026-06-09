@@ -128,16 +128,23 @@ export function StoryChapters({
   const titleScript = theme.scriptFontFamily ?? "Quattrocento, Georgia, serif";
 
   return (
-    <section className="relative py-24 px-6" style={{ background: theme.bg, color: theme.fg }}>
+    <section className="relative py-14 px-6" style={{ background: theme.bg, color: theme.fg }}>
       <style>{`
         .sc-reveal { opacity: 0; transform: translateY(40px); transition: opacity .9s ease, transform .9s ease; }
         .sc-reveal.in { opacity: 1; transform: none; }
         .sc-photo { box-shadow: 0 24px 50px -22px ${dark ? "rgba(0,0,0,.7)" : "rgba(0,0,0,.25)"}; }
+        /* Photo extends into adjacent rows — desktop only; overlap with neighbour photos is fine */
+        @media (min-width: 768px) {
+          .sc-photo-down { transform: translateY(60px); }
+          .sc-photo-up   { transform: translateY(-60px); }
+          /* Diverging pair (after RIGHT-photo row): pull next row up so all chapter gaps look uniformly close */
+          .sc-row:nth-child(2n):not(:last-child) { margin-bottom: -180px; }
+        }
       `}</style>
 
       <Header eyebrow={eyebrow} heading={heading} subtitle={subtitle} theme={theme} titleSerif={titleSerif} titleScript={titleScript} />
 
-      <div className="max-w-5xl mx-auto mt-16 space-y-20 md:space-y-28">
+      <div className="max-w-5xl mx-auto mt-10 space-y-10 md:space-y-14">
         {chapters.map((ch, i) => (
           <ChapterRow key={i} chapter={ch} index={i} theme={theme} titleSerif={titleSerif} />
         ))}
@@ -188,15 +195,22 @@ function ChapterRow({
   const { ref, seen } = useReveal<HTMLDivElement>();
   const photoRight = index % 2 === 1;
 
+  // All photos cross into adjacent gaps — odd rows shift UP, even rows shift DOWN.
+  // It is fine if photos in opposite columns visually overlap across the gap.
+  const photoCrossClass = photoRight ? "sc-photo-up" : "sc-photo-down";
+
   return (
     <article
       ref={ref}
-      className={`sc-reveal ${seen ? "in" : ""} grid md:grid-cols-2 gap-8 md:gap-14 items-center`}
+      className={`sc-row sc-reveal ${seen ? "in" : ""} grid md:grid-cols-2 gap-6 md:gap-10 items-center relative`}
     >
-      <div className={`flex justify-center ${photoRight ? "md:order-2" : "md:order-1"}`}>
+      <div
+        className={`flex justify-center ${photoRight ? "md:order-2" : "md:order-1"} ${photoCrossClass}`}
+        style={{ zIndex: 2 }}
+      >
         <Photo chapter={chapter} theme={theme} />
       </div>
-      <div className={`${photoRight ? "md:order-1" : "md:order-2"}`}>
+      <div className={`${photoRight ? "md:order-1" : "md:order-2"} relative`} style={{ zIndex: 1 }}>
         <TextBlock chapter={chapter} index={index} theme={theme} titleSerif={titleSerif} />
       </div>
     </article>
@@ -204,15 +218,19 @@ function ChapterRow({
 }
 
 function Photo({ chapter, theme }: { chapter: StoryChapter; theme: StoryTheme }) {
+  const wrapStyle: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 400,
+    aspectRatio: "4 / 5",
+    background: theme.card ?? theme.bg,
+    borderRadius: 14,
+    padding: 8,
+  };
   if (!chapter.photo) {
     return (
       <div
         style={{
-          width: "100%",
-          maxWidth: 380,
-          aspectRatio: "3 / 4",
-          background: theme.card ?? theme.bg,
-          borderRadius: 14,
+          ...wrapStyle,
           border: `1px dashed ${theme.rule}88`,
         }}
       />
@@ -222,13 +240,8 @@ function Photo({ chapter, theme }: { chapter: StoryChapter; theme: StoryTheme })
     <div
       className="sc-photo relative overflow-hidden"
       style={{
-        width: "100%",
-        maxWidth: 380,
-        aspectRatio: "3 / 4",
-        background: theme.card ?? theme.bg,
-        borderRadius: 14,
+        ...wrapStyle,
         border: `1px solid ${theme.rule}66`,
-        padding: 8,
       }}
     >
       <div className="w-full h-full overflow-hidden" style={{ borderRadius: 8 }}>

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import PublicLayout from "@/components/PublicLayout";
-import { BatikBg, Divider } from "@/components/Ornaments";
 import { Reveal } from "@/components/Reveal";
 import { api } from "@/lib/api";
 import { getPalette, isDarkPalette } from "@/lib/palette";
@@ -30,15 +29,13 @@ const CATEGORIES = [
 
 const PACKAGE_BUCKETS = [
   { id: "all", label: "Semua paket", match: () => true },
-  { id: "pro", label: "Paket Pro", match: (p: number) => p <= 60000 },
-  { id: "cinematic", label: "Paket Cinematic", match: (p: number) => p > 60000 && p <= 90000 },
-  { id: "signature", label: "Paket Signature", match: (p: number) => p > 90000 },
+  { id: "pro", label: "Paket Pro", match: (p: number) => p <= 100000 },
+  { id: "eksklusif", label: "Paket Eksklusif", match: (p: number) => p > 100000 },
 ];
 
 function packageTier(idr: number) {
-  if (idr <= 60000) return { tier: "Pro", color: "#A88339" };
-  if (idr <= 90000) return { tier: "Cinematic", color: "#C9A961" };
-  return { tier: "Signature", color: "#8E544E" };
+  if (idr <= 100000) return { tier: "Pro", color: "#A88339" };
+  return { tier: "Eksklusif", color: "#8E544E" };
 }
 
 function paletteSwatch(palette: string): [string, string] {
@@ -47,12 +44,15 @@ function paletteSwatch(palette: string): [string, string] {
 }
 
 /** Phone mockup that visually echoes the actual template's renderer */
-function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 · 09 · 2026", eyebrow = "The Wedding Of" }: {
+type PhoneScene = "cover" | "couple" | "journey";
+
+function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 · 09 · 2026", eyebrow = "The Wedding Of", scene = "cover" }: {
   slug: string;
   palette: string;
   names?: string;
   date?: string;
   eyebrow?: string;
+  scene?: PhoneScene;
 }) {
   const p = getPalette(palette);
   const isDark = isDarkPalette(palette);
@@ -102,23 +102,20 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
               <div className="w-[5px] h-[5px] rounded-full" style={{ background: "radial-gradient(circle at 35% 30%, #243042, #060a14)" }} />
             </div>
 
-            {/* iOS status bar */}
+            {/* iOS status bar — signal + battery only */}
             <div
               className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between pointer-events-none"
-              style={{ height: 22, paddingLeft: 12, paddingRight: 11, color: "#fff", mixBlendMode: "difference" }}
+              style={{ height: 24, paddingLeft: 18, paddingRight: 16, color: "#fff", mixBlendMode: "difference" }}
             >
               <div className="text-[9px] font-semibold tabular-nums" style={{ letterSpacing: "-0.01em" }}>11.00</div>
-              <div className="flex items-center gap-[3px]">
-                <svg width="11" height="7" viewBox="0 0 12 8" fill="currentColor" aria-hidden>
+              <div className="flex items-center gap-1">
+                <svg width="9" height="6" viewBox="0 0 12 8" fill="currentColor" aria-hidden>
                   <rect x="0" y="5" width="2" height="3" rx="0.4" />
                   <rect x="3" y="3.5" width="2" height="4.5" rx="0.4" />
                   <rect x="6" y="1.5" width="2" height="6.5" rx="0.4" />
                   <rect x="9" y="0" width="2" height="8" rx="0.4" />
                 </svg>
-                <svg width="10" height="7" viewBox="0 0 15 11" fill="currentColor" aria-hidden>
-                  <path d="M7.5 1.5C4.4 1.5 1.7 2.7 0 4.5l1.7 1.7c1.5-1.4 3.6-2.2 5.8-2.2s4.3.8 5.8 2.2L15 4.5C13.3 2.7 10.6 1.5 7.5 1.5zM7.5 5C5.6 5 4 5.8 2.8 7L4.5 8.7c.8-.7 1.9-1.2 3-1.2s2.2.5 3 1.2L12.2 7C11 5.8 9.4 5 7.5 5zM7.5 8.4c-.7 0-1.3.6-1.3 1.3s.6 1.3 1.3 1.3 1.3-.6 1.3-1.3-.6-1.3-1.3-1.3z" />
-                </svg>
-                <svg width="17" height="8" viewBox="0 0 26 12" fill="none" aria-hidden>
+                <svg width="14" height="7" viewBox="0 0 26 12" fill="none" aria-hidden>
                   <rect x="0.5" y="0.5" width="22" height="11" rx="2.5" stroke="currentColor" strokeOpacity="0.6" strokeWidth="1" />
                   <rect x="2" y="2" width="19" height="8" rx="1.5" fill="currentColor" />
                   <rect x="23.5" y="3.5" width="2" height="5" rx="0.8" fill="currentColor" />
@@ -126,12 +123,146 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
               </div>
             </div>
 
-            {inside}
+            {/* Template canvas — pushed below status bar */}
+            <div className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: 24 }}>
+              {inside}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
+
+  /* COUPLE scene — bride & groom side-by-side (palette-aware) */
+  if (scene === "couple") {
+    const accentColor = isDark ? p.accent : p.accent;
+    return shell(
+      <div className="relative w-full h-full" style={{ background: p.bg, color: p.fg }}>
+        <div className="absolute inset-0 px-3 pt-4 pb-5 flex flex-col items-center text-center">
+          <div className="text-[6.5px] tracking-[0.35em] uppercase" style={{ color: accentColor }}>Mempelai Berbahagia</div>
+          <div className="font-serif text-[12px] mt-1" style={{ color: p.fg }}>Dua Hati Bersatu</div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 w-full">
+            {[
+              { name: bride, label: "Putri", img: photo },
+              { name: groom, label: "Putra", img: photo },
+            ].map((person, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className="relative" style={{ width: "100%", aspectRatio: "3/4", borderRadius: 6, overflow: "hidden", border: `1px solid ${accentColor}55`, background: isDark ? p.card : p.bg }}>
+                  <img src={person.img} alt="" className="w-full h-full object-cover" style={{ filter: isDark ? "brightness(0.8)" : undefined }} />
+                </div>
+                <div className="text-[5.5px] tracking-[0.3em] uppercase mt-1.5" style={{ color: accentColor }}>{person.label}</div>
+                <div className="font-serif text-[10px] mt-0.5" style={{ color: p.fg }}>{person.name}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-center gap-1.5">
+            <span className="h-px w-6" style={{ background: accentColor, opacity: 0.5 }} />
+            <span className="w-1.5 h-1.5 rotate-45 border" style={{ borderColor: accentColor }} />
+            <span className="h-px w-6" style={{ background: accentColor, opacity: 0.5 }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* JOURNEY scene — Perjalanan Kami chapter card */
+  if (scene === "journey") {
+    const accentColor = p.accent;
+    return shell(
+      <div className="relative w-full h-full" style={{ background: p.bg, color: p.fg }}>
+        <div className="absolute inset-0 px-3 pt-4 pb-5 flex flex-col items-center text-center">
+          <div className="text-[6.5px] tracking-[0.35em] uppercase" style={{ color: accentColor }}>Cerita Kami</div>
+          <div className="font-serif italic text-[14px] mt-1" style={{ color: p.fg }}>Perjalanan Kami</div>
+          {/* Heart divider */}
+          <div className="mt-2 flex items-center gap-1.5">
+            <span className="h-px w-6" style={{ background: accentColor, opacity: 0.5 }} />
+            <svg width="9" height="8" viewBox="0 0 14 12" fill="none" aria-hidden>
+              <path d="M7 11.5S0.5 7.5 0.5 3.8C0.5 2 2 0.5 3.8 0.5c1 0 2.4 0.7 3.2 1.8C7.8 1.2 9.2 0.5 10.2 0.5c1.8 0 3.3 1.5 3.3 3.3 0 3.7-6.5 7.7-6.5 7.7z" stroke={accentColor} strokeWidth="0.8" strokeLinejoin="round"/>
+            </svg>
+            <span className="h-px w-6" style={{ background: accentColor, opacity: 0.5 }} />
+          </div>
+
+          {/* Chapter card */}
+          <div className="mt-3 w-full p-1.5 flex flex-col gap-1.5" style={{
+            background: isDark ? p.card : p.bg,
+            border: `1px solid ${accentColor}55`,
+            borderRadius: 6,
+          }}>
+            <div className="w-full overflow-hidden" style={{ aspectRatio: "4/3", borderRadius: 4 }}>
+              <img src={photo} alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="px-1">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[6.5px]" style={{ color: accentColor }}>01</span>
+                <span className="h-px w-3" style={{ background: accentColor, opacity: 0.5 }} />
+                <span className="text-[7px] font-bold tracking-[0.2em] uppercase" style={{ color: accentColor }}>Pertemuan</span>
+              </div>
+              <p className="text-[6px] leading-[1.5] mt-1 text-left" style={{ color: isDark ? p.soft : p.soft }}>
+                Tidak ada yang kebetulan di dunia ini, semua sudah tersusun rapi oleh Sang Maha Kuasa…
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* LUMINA — modern minimalist luxe (light/champagne) */
+  if (slug === "lumina") {
+    return shell(
+      <div className="relative w-full h-full overflow-hidden">
+        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #1B1A16b3 0%, #1B1A1680 45%, #1B1A16e6 100%)" }} />
+        {/* rotating champagne aura */}
+        <div className="absolute top-[16%] left-1/2 -translate-x-1/2 w-24 h-24 rounded-full lum-mini-aura" style={{ background: "conic-gradient(from 0deg, transparent, #CDB08988, transparent 35%, #B08D5766, transparent 70%, #CDB08988, transparent)", filter: "blur(8px)", opacity: 0.7 }} />
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
+          <span className="inline-flex items-center justify-center w-9 h-9 rounded-full" style={{ border: "1px solid #CDB08988" }}>
+            <span className="font-serif italic text-[11px]" style={{ color: "#CDB089" }}>{bride[0]}{groom[0]}</span>
+          </span>
+          <div className="mt-2 text-[6.5px] tracking-[0.4em] uppercase" style={{ color: "#CDB089" }}>{eb}</div>
+          <div className="font-serif mt-2" style={{ color: "#FFFFFF", fontSize: 26, lineHeight: 1 }}>
+            {bride}<div className="my-0.5 italic text-xs" style={{ color: "#CDB089" }}>&amp;</div>{groom}
+          </div>
+          <div className="mt-2 text-[6.5px] tracking-[0.32em] uppercase" style={{ color: "#FFFFFFcc" }}>{dt}</div>
+          <div className="mt-3 px-3 py-1 rounded-full text-[6.5px] tracking-[0.3em] uppercase" style={{ background: "#CDB089", color: "#1B1A16" }}>Buka Undangan →</div>
+        </div>
+        <style>{`@keyframes lum-mini { to { transform: translateX(-50%) rotate(360deg); } } .lum-mini-aura{ animation: lum-mini 14s linear infinite; }`}</style>
+      </div>
+    );
+  }
+
+  /* NOCTURA — modern dark luxe (gold shimmer) */
+  if (slug === "noctura") {
+    return shell(
+      <div className="relative w-full h-full overflow-hidden">
+        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90" />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 50% 40%, #0E0E1166 0%, #0E0E11cc 55%, #0E0E11f7 100%)" }} />
+        {/* gold particles */}
+        {[["12%", "24%"], ["80%", "30%"], ["28%", "70%"], ["66%", "66%"]].map(([l, t], i) => (
+          <span key={i} className="absolute w-[3px] h-[3px] rounded-full noc-mini-p" style={{ left: l, top: t, background: "#E6CD8B", animationDelay: `${i * 0.6}s` }} />
+        ))}
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
+          <span className="inline-flex items-center justify-center w-9 h-9" style={{ border: "1px solid #C9A24B66", borderRadius: 3, transform: "rotate(45deg)" }}>
+            <span className="font-serif italic text-[9px]" style={{ color: "#E6CD8B", transform: "rotate(-45deg)" }}>{bride[0]}&amp;{groom[0]}</span>
+          </span>
+          <div className="mt-2 text-[6.5px] tracking-[0.4em] uppercase" style={{ color: "#E6CD8B" }}>{eb}</div>
+          <div className="font-serif mt-2 noc-mini-shine" style={{ fontSize: 26, lineHeight: 1 }}>
+            {bride}<div className="my-0.5 italic text-xs">&amp;</div>{groom}
+          </div>
+          <div className="mt-2 text-[6.5px] tracking-[0.32em] uppercase" style={{ color: "#F1EEE7cc" }}>{dt}</div>
+          <div className="mt-3 px-3 py-1 rounded-full text-[6.5px] tracking-[0.3em] uppercase" style={{ background: "linear-gradient(100deg, #C9A24B, #E6CD8B)", color: "#0E0E11" }}>Buka Undangan →</div>
+        </div>
+        <style>{`
+          @keyframes noc-mini-shine { to { background-position: 200% center; } }
+          @keyframes noc-mini-drift { 0%,100%{ transform: translateY(0); opacity:.5 } 50%{ transform: translateY(-8px); opacity:1 } }
+          .noc-mini-shine{ background:linear-gradient(100deg,#E6CD8B,#FFF6DC 20%,#C9A24B 40%,#E6CD8B 60%,#FFF6DC 80%,#C9A24B); background-size:200% auto; -webkit-background-clip:text; background-clip:text; color:transparent; animation:noc-mini-shine 6s linear infinite; }
+          .noc-mini-p{ animation: noc-mini-drift 6s ease-in-out infinite; }
+        `}</style>
+      </div>
+    );
+  }
 
   /* CINEMATIC variant — Purnama */
   if (slug === "purnama") {
@@ -157,17 +288,18 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
   /* EDITORIAL variant — Mahligai (split layout) */
   if (slug === "mahligai") {
     return shell(
-      <div className="relative w-full h-full" style={{ background: "#FCF7EB", color: "#1F1A14" }}>
-        <img src={photo} alt="" className="absolute top-0 left-0 right-0 h-1/2 w-full object-cover" />
-        <div className="absolute top-2 right-2 z-10 text-[6px] tracking-[0.35em] uppercase opacity-90" style={{ color: "#FCF7EB", mixBlendMode: "difference" }}>
-          Vol. 01
-        </div>
-        <div className="absolute top-1/2 left-0 right-0 bottom-0 p-4 flex flex-col justify-center">
-          <div className="text-[7px] tracking-[0.35em] uppercase" style={{ color: "#B57341" }}>The Wedding Of</div>
-          <div className="font-serif mt-2" style={{ fontSize: 28, lineHeight: 0.95 }}>{bride}</div>
-          <div className="font-serif my-0.5" style={{ color: "#B57341", fontSize: 18 }}>&amp;</div>
-          <div className="font-serif pl-3" style={{ fontSize: 28, lineHeight: 0.95 }}>{groom}</div>
-          <div className="mt-3 text-[7px] tracking-[0.35em] uppercase opacity-70">{dt}</div>
+      <div className="relative w-full h-full overflow-hidden">
+        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #1F1A14cc 0%, #1F1A1499 45%, #1F1A14ee 100%)" }} />
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
+          <div className="text-[7px] tracking-[0.4em] uppercase" style={{ color: "#C39449" }}>{eb}</div>
+          <div className="font-serif mt-3" style={{ color: "#FAF4E6", fontSize: 28, lineHeight: 0.95 }}>
+            {bride}
+            <div className="my-0.5 italic text-base" style={{ color: "#C39449" }}>&amp;</div>
+            {groom}
+          </div>
+          <div className="mt-3 text-[7px] tracking-[0.3em] uppercase" style={{ color: "#FAF4E6cc" }}>{dt}</div>
+          <div className="mt-3 px-3 py-1 rounded-full text-[6.5px] tracking-[0.3em] uppercase" style={{ background: "#C39449", color: "#1F1A14" }}>Buka Undangan →</div>
         </div>
       </div>
     );
@@ -177,35 +309,24 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
   if (slug === "terakota-senja") {
     return shell(
       <div className="relative w-full h-full overflow-hidden">
-        {/* sunset gradient sky */}
-        <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, #F4D9BC 0%, #D9806A 45%, #7A3520 100%)` }} />
-        {/* horizon silhouette */}
-        <svg viewBox="0 0 200 80" preserveAspectRatio="none" className="absolute bottom-0 w-full" style={{ height: "32%" }}>
-          <path d="M0 30 L30 18 L60 26 L100 14 L140 24 L180 16 L200 22 L200 80 L0 80 Z" fill="#7A3520" opacity="0.95" />
-        </svg>
+        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #7A3520aa 0%, #D9806A55 42%, #7A3520ec 100%)" }} />
         {/* sun disc */}
-        <div className="absolute" style={{ top: "26%", left: "50%", transform: "translateX(-50%)" }}>
-          <div className="w-14 h-14 rounded-full" style={{ background: "radial-gradient(circle at 50% 50%, #FBEFDD, #E8642A 70%, transparent)", boxShadow: "0 0 22px #E8642A88" }} />
+        <div className="absolute" style={{ top: "15%", left: "50%", transform: "translateX(-50%)" }}>
+          <div className="w-12 h-12 rounded-full" style={{ background: "radial-gradient(circle at 50% 50%, #FBEFDD, #E8642A 70%, transparent)", boxShadow: "0 0 20px #E8642A88" }} />
         </div>
-        {/* photo as mix-blend backdrop */}
-        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-30" />
 
         <div className="relative h-full flex flex-col items-center justify-end text-center px-4 pb-6">
           <div className="text-[7px] tracking-[0.4em] uppercase" style={{ color: "#FBEFDD" }}>{eb}</div>
-          <div className="font-serif mt-3" style={{ color: "#FBEFDD", fontSize: 26, lineHeight: 0.95 }}>
+          <div className="font-serif mt-2" style={{ color: "#FBEFDD", fontSize: 26, lineHeight: 0.95 }}>
             {bride}
             <div className="my-0.5 text-sm italic" style={{ color: "#F4D9BC" }}>&amp;</div>
             {groom}
           </div>
-          <div className="mt-3 px-2 py-0.5 text-[7px] tracking-[0.3em] uppercase" style={{ background: "#FBEFDD22", color: "#FBEFDD", border: "1px solid #FBEFDD55" }}>
+          <div className="mt-2 px-2 py-0.5 text-[7px] tracking-[0.3em] uppercase" style={{ background: "#FBEFDD22", color: "#FBEFDD", border: "1px solid #FBEFDD55" }}>
             {dt}
           </div>
-          {/* tile border bottom */}
-          <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-1.5 pb-1.5">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <span key={i} className="w-1.5 h-1.5 rotate-45 border" style={{ borderColor: "#FBEFDD", opacity: 0.7 }} />
-            ))}
-          </div>
+          <div className="mt-3 px-3 py-1 rounded-full text-[6.5px] tracking-[0.3em] uppercase" style={{ background: "#FBEFDD", color: "#7A3520" }}>Buka Undangan →</div>
         </div>
       </div>
     );
@@ -214,43 +335,32 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
   /* WATERCOLOR FLORAL variant — Kembang Setaman */
   if (slug === "kembang-setaman") {
     return shell(
-      <div className="relative w-full h-full overflow-hidden" style={{ background: "radial-gradient(ellipse at top, #F4D9D1 0%, #FBF0EC 60%, #FDF7F2 100%)" }}>
-        {/* watercolor rose washes in corners */}
-        <div className="absolute -top-4 -left-4 w-20 h-20 rounded-full" style={{ background: "radial-gradient(circle, #D5847E66, transparent 70%)" }} />
-        <div className="absolute -top-2 -right-4 w-16 h-16 rounded-full" style={{ background: "radial-gradient(circle, #A24D5566, transparent 70%)" }} />
-        <div className="absolute -bottom-4 -left-2 w-20 h-20 rounded-full" style={{ background: "radial-gradient(circle, #D5847E66, transparent 70%)" }} />
-        <div className="absolute -bottom-3 -right-4 w-16 h-16 rounded-full" style={{ background: "radial-gradient(circle, #A24D5566, transparent 70%)" }} />
+      <div className="relative w-full h-full overflow-hidden">
+        <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, #A24D55bf 0%, #D5847E66 42%, #A24D55ec 100%)" }} />
         {/* leaf accents */}
         <svg className="absolute top-3 right-3 opacity-70" width="34" height="34" viewBox="0 0 40 40">
-          <g stroke="#7A8A6B" strokeWidth="0.7" fill="#7A8A6B" fillOpacity="0.4">
+          <g stroke="#FDF7F2" strokeWidth="0.7" fill="#FDF7F2" fillOpacity="0.4">
             <ellipse cx="20" cy="10" rx="8" ry="3" transform="rotate(-30 20 10)" />
             <ellipse cx="14" cy="22" rx="7" ry="2.5" transform="rotate(20 14 22)" />
             <ellipse cx="26" cy="22" rx="7" ry="2.5" transform="rotate(-20 26 22)" />
           </g>
         </svg>
-        {/* photo medallion (arched top) */}
-        <div className="absolute top-7 left-1/2 -translate-x-1/2" style={{ width: 100, height: 130 }}>
-          <div className="absolute inset-0 bg-white p-1" style={{ borderRadius: "50px 50px 6px 6px", boxShadow: "0 8px 18px -8px #A24D5566" }}>
-            <div className="w-full h-full overflow-hidden" style={{ borderRadius: "46px 46px 4px 4px" }}>
-              <img src={photo} alt="" className="w-full h-full object-cover" />
-            </div>
-          </div>
-        </div>
 
-        <div className="absolute inset-x-0 bottom-0 px-3 pb-5 pt-2 text-center">
-          <div className="text-[7px] tracking-[0.4em] uppercase" style={{ color: "#D5847E" }}>{eb}</div>
-          <div className="font-serif mt-1" style={{ color: "#3D2530", fontSize: 22, lineHeight: 0.95 }}>
+        <div className="relative h-full flex flex-col items-center justify-center text-center px-4">
+          <div className="text-[7px] tracking-[0.4em] uppercase" style={{ color: "#FDF7F2" }}>{eb}</div>
+          <div className="font-serif mt-1.5" style={{ color: "#FDF7F2", fontSize: 24, lineHeight: 0.95 }}>
             {bride}
-            <div className="font-serif italic my-0.5" style={{ color: "#A24D55", fontSize: 12 }}>&amp;</div>
+            <div className="font-serif italic my-0.5" style={{ color: "#F4D9D1", fontSize: 12 }}>&amp;</div>
             {groom}
           </div>
-          {/* scallop */}
           <svg viewBox="0 0 120 8" className="mt-1.5 mx-auto" width="80" height="6">
-            <path d="M0 6 Q6 0 12 6 T24 6 T36 6 T48 6 T60 6 T72 6 T84 6 T96 6 T108 6 T120 6" stroke="#D5847E" strokeWidth="0.6" fill="none" />
+            <path d="M0 6 Q6 0 12 6 T24 6 T36 6 T48 6 T60 6 T72 6 T84 6 T96 6 T108 6 T120 6" stroke="#FDF7F2" strokeWidth="0.7" fill="none" />
           </svg>
-          <div className="mt-1.5 inline-block px-2 py-0.5 text-[7px] tracking-[0.3em] uppercase font-serif italic" style={{ background: "#FDF7F2", color: "#7C4252", border: "1px solid #C9999A", borderRadius: 999 }}>
+          <div className="mt-1.5 inline-block px-2 py-0.5 text-[7px] tracking-[0.3em] uppercase font-serif italic" style={{ background: "rgba(255,255,255,0.15)", color: "#FDF7F2", border: "1px solid #FDF7F266", borderRadius: 999 }}>
             {dt}
           </div>
+          <div className="mt-3 px-3 py-1 rounded-full text-[6.5px] tracking-[0.3em] uppercase" style={{ background: "#FDF7F2", color: "#A24D55" }}>Buka Undangan ✿</div>
         </div>
       </div>
     );
@@ -292,11 +402,12 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
     );
   }
 
-  /* DEFAULT (Sekar/Larasati/etc): cover photo + colored frame + names */
+  /* DEFAULT (Sekar/Larasati/etc): full cover photo + palette overlay + names */
   return shell(
-    <div className="relative w-full h-full" style={{ background: p.bg, color: p.fg }}>
-      <img src={photo} alt="" className="absolute top-2 left-2 right-2 h-[55%] object-cover w-[calc(100%-1rem)]" style={{ filter: isDark ? "brightness(0.85)" : undefined }} />
-      <div className="absolute inset-0 pointer-events-none" style={{ border: `1px solid ${p.accent}`, margin: 6, opacity: 0.6 }} />
+    <div className="relative w-full h-full overflow-hidden" style={{ color: p.fg }}>
+      <img src={photo} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ filter: isDark ? "brightness(0.85)" : undefined }} />
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${p.bg}26 0%, ${p.bg}80 50%, ${p.bg}f5 100%)` }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ border: `1px solid ${p.accent}`, margin: 6, opacity: 0.5 }} />
       <div className="absolute bottom-0 left-0 right-0 px-4 pb-5 pt-3 flex flex-col items-center text-center">
         <div className="text-[7px] tracking-[0.35em] uppercase" style={{ color: p.accent }}>{eb}</div>
         <div className="flex items-center gap-1.5 my-1.5">
@@ -315,11 +426,11 @@ function TemplatePhoneMock({ slug, palette, names = "Arini & Bagas", date = "07 
   );
 }
 
-/** Cluster of 3 white iPhone mockups spread casually, like flat-lay product shots. */
-function TemplateClusterPreview({ slug, palette }: { slug: string; palette: string }) {
+/** Cluster of 3 white iPhone mockups showing different scenes: couple (left), cover (center), journey (right). */
+export function TemplateClusterPreview({ slug, palette }: { slug: string; palette: string }) {
   return (
     <div className="relative h-[340px] flex items-center justify-center" style={{ perspective: "1200px" }}>
-      {/* Left phone */}
+      {/* Left phone — Couple */}
       <div
         className="absolute"
         style={{
@@ -329,9 +440,9 @@ function TemplateClusterPreview({ slug, palette }: { slug: string; palette: stri
           filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.18))",
         }}
       >
-        <TemplatePhoneMock slug={slug} palette={palette} />
+        <TemplatePhoneMock slug={slug} palette={palette} scene="couple" />
       </div>
-      {/* Right phone */}
+      {/* Right phone — Journey */}
       <div
         className="absolute"
         style={{
@@ -341,9 +452,9 @@ function TemplateClusterPreview({ slug, palette }: { slug: string; palette: stri
           filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.18))",
         }}
       >
-        <TemplatePhoneMock slug={slug} palette={palette} />
+        <TemplatePhoneMock slug={slug} palette={palette} scene="journey" />
       </div>
-      {/* Center phone — main, on top */}
+      {/* Center phone — Cover, main, on top */}
       <div
         className="relative"
         style={{
@@ -352,7 +463,7 @@ function TemplateClusterPreview({ slug, palette }: { slug: string; palette: stri
           filter: "drop-shadow(0 28px 40px rgba(0,0,0,0.22))",
         }}
       >
-        <TemplatePhoneMock slug={slug} palette={palette} />
+        <TemplatePhoneMock slug={slug} palette={palette} scene="cover" />
       </div>
     </div>
   );
@@ -372,6 +483,8 @@ const TEMPLATE_SAMPLES: Record<string, { photo: string; bride?: string; groom?: 
   "kembang-setaman": { photo: "https://images.unsplash.com/photo-1488716820095-cbe80883c496?w=600&q=70", bride: "Melati",    groom: "Pradana",   eyebrow: "The Wedding Of",  date: "17 · 07 · 2027" },
   "terakota-senja":  { photo: "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=600&q=70", bride: "Anggun",    groom: "Bagaskara", eyebrow: "Save The Date",   date: "23 · 09 · 2026" },
   "mahligai":        { photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&q=70", bride: "Wulan",     groom: "Iqbal",     eyebrow: "Walimatul 'Urs",  date: "14 · 02 · 2027" },
+  "lumina":          { photo: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&q=70", bride: "Aleyda",    groom: "Reyhan",    eyebrow: "The Wedding Of",   date: "11 · 11 · 2026" },
+  "noctura":         { photo: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=600&q=70", bride: "Sierra",    groom: "Damar",     eyebrow: "The Wedding Of",   date: "20 · 12 · 2026" },
 };
 
 function templateSample(slug: string) {
@@ -414,15 +527,13 @@ export default function TemplatesPage() {
 
   return (
     <PublicLayout>
-      <section className="relative overflow-hidden bg-brown text-cream-soft border-b border-line">
-        <BatikBg className="absolute inset-0 opacity-20" color="#D9A39C" opacity={0.5} />
-        <div className="container-narrow py-20 md:py-24 relative">
+      <section className="bg-brown text-cream-soft">
+        <div className="container-narrow pt-32 md:pt-40 pb-20 md:pb-24">
           <div className="max-w-3xl">
-            <span className="sec-num" style={{ color: "#D9A39C" }}>PUSTAKA TEMPLATE</span>
-            <h1 className="mt-4 text-4xl md:text-6xl font-serif text-cream-soft">
-              Setiap kisah,<br /><em className="text-rose-soft">berbeda baitnya</em>
+            <span className="label-soft text-rose-soft">Pustaka Template</span>
+            <h1 className="mt-4 text-4xl md:text-6xl font-serif leading-[1.1] text-cream-soft">
+              Setiap kisah, <span className="text-rose-soft">berbeda baitnya</span>
             </h1>
-            <Divider width={240} color="#D9A39C" className="mt-6" />
             <p className="mt-6 text-cream-soft/80 text-[16px] md:text-[17px] leading-relaxed">
               Telusuri ragam tema undangan, mulai dari klasik Nusantara, modern minimalis, hingga sinematik mewah. Setiap template dapat disesuaikan secara menyeluruh, meliputi warna, font, hingga urutan blok cerita.
             </p>
@@ -438,7 +549,7 @@ export default function TemplatesPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari template…"
-              className="w-full border border-line bg-paper px-4 py-3 rounded text-sm"
+              className="w-full border border-line bg-paper px-4 py-3 rounded-xl text-sm focus:outline-none focus:border-gold-deep transition"
             />
           </div>
           <FilterGroup title="Kategori">
@@ -456,11 +567,6 @@ export default function TemplatesPage() {
               </FilterItem>
             ))}
           </FilterGroup>
-          <FilterGroup title="Fitur populer">
-            {["RSVP Online", "Live Streaming", "Galeri Video", "QR Check-in", "Amplop Digital"].map((f) => (
-              <FilterItem key={f}>{f}</FilterItem>
-            ))}
-          </FilterGroup>
         </aside>
 
         {/* GRID */}
@@ -475,7 +581,7 @@ export default function TemplatesPage() {
           {loading ? (
             <div className="text-sepia-mute">Memuat template…</div>
           ) : filtered.length === 0 ? (
-            <div className="card-paper bracketed p-12 text-center text-sepia-soft">
+            <div className="card-soft p-12 text-center text-sepia-soft">
               Tidak ada template yang cocok dengan filter Anda.
             </div>
           ) : (
@@ -486,17 +592,10 @@ export default function TemplatesPage() {
                 return (
                   <Reveal key={t.id}>
                     <Link to={`/templates/${t.slug}`} className="group block">
-                      <div
-                        className="relative rounded-xl overflow-hidden p-6 transition-transform group-hover:-translate-y-1 group-hover:shadow-soft"
-                        style={{
-                          background: "linear-gradient(135deg, #efebe5 0%, #e8e3db 60%, #ddd6cb 100%)",
-                          border: "1px solid rgba(58,42,28,0.10)",
-                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.5)",
-                        }}
-                      >
+                      <div className="relative rounded-2xl overflow-hidden p-6 bg-cream-deep border border-line transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-[0_24px_50px_-28px_rgba(58,42,28,0.4)]">
                         {t.badge && (
                           <span
-                            className="absolute top-3 left-3 z-30 rounded-r-full pl-2.5 pr-3.5 py-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-white"
+                            className="absolute top-3 left-3 z-30 rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.12em] font-semibold text-white"
                             style={{ background: tier.color }}
                           >
                             {t.badge}
@@ -504,23 +603,23 @@ export default function TemplatesPage() {
                         )}
                         <TemplateClusterPreview slug={t.slug} palette={t.palette} />
                       </div>
-                      <div className="mt-4 flex items-end justify-between gap-3">
+                      <div className="mt-4 flex items-end justify-between gap-3 px-1">
                         <div>
-                          <div className="font-serif text-2xl">{t.name}</div>
-                          <div className="text-xs text-sepia-mute uppercase tracking-[0.15em] mt-0.5">{t.style}</div>
+                          <div className="font-serif text-xl text-sepia">{t.name}</div>
+                          <div className="text-xs text-sepia-mute uppercase tracking-[0.14em] mt-0.5">{t.style}</div>
                           <div className="flex gap-1 mt-2">
                             <span className="w-3 h-3 rounded-full border border-line" style={{ background: bg }} />
                             <span className="w-3 h-3 rounded-full border border-line" style={{ background: ac }} />
                           </div>
                         </div>
                         <div
-                          className="rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.18em] font-medium whitespace-nowrap"
+                          className="rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.16em] font-medium whitespace-nowrap"
                           style={{ borderColor: tier.color, color: tier.color }}
                         >
-                          Paket {tier.tier}
+                          {tier.tier}
                         </div>
                       </div>
-                      {t.description && <p className="text-sm text-sepia-soft mt-3">{t.description}</p>}
+                      {t.description && <p className="text-sm text-sepia-soft mt-3 px-1">{t.description}</p>}
                     </Link>
                   </Reveal>
                 );
@@ -546,7 +645,7 @@ function FilterItem({ children, active, onClick }: { children: React.ReactNode; 
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center text-left rounded px-3 py-2 text-sm transition border ${
+      className={`w-full flex items-center text-left rounded-lg px-3 py-2 text-sm transition border ${
         active ? "border-sepia bg-sepia text-cream-soft" : "border-transparent text-sepia-soft hover:bg-cream-deep hover:border-line"
       }`}
     >

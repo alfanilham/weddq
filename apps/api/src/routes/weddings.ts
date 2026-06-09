@@ -7,6 +7,35 @@ import { slugify, isReservedSlug } from "../lib/slug.js";
 
 const router = Router();
 
+/* Guard masa edit: untuk metode yang mengubah data pada /by-id/:id*, tolak bila
+   masa aktif edit undangan sudah lewat (atau belum mulai). GET tetap diizinkan
+   agar user masih bisa membuka dasbornya. */
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+function editWindowError(w: { activeFrom: Date | null; activeUntil: Date | null }): string | null {
+  const now = Date.now();
+  if (w.activeFrom && now < w.activeFrom.getTime()) return "Masa edit undangan belum dimulai.";
+  if (w.activeUntil && now > w.activeUntil.getTime())
+    return "Masa edit undangan telah berakhir. Hubungi admin untuk perpanjangan.";
+  return null;
+}
+router.use("/by-id/:id", authRequired, async (req, _res, next) => {
+  try {
+    if (!MUTATING_METHODS.has(req.method)) return next();
+    const w = await prisma.wedding.findFirst({
+      where: { id: req.params.id, ownerId: req.user!.sub },
+      select: { activeFrom: true, activeUntil: true },
+    });
+    // Bila tidak dimiliki user, biarkan handler aslinya membalas 404.
+    if (w) {
+      const err = editWindowError(w);
+      if (err) throw new HttpError(403, err);
+    }
+    next();
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.get("/", authRequired, async (req, res, next) => {
   try {
     const list = await prisma.wedding.findMany({
@@ -117,6 +146,13 @@ router.put("/by-id/:id", authRequired, async (req, res, next) => {
     if (!owned) throw new HttpError(404, "Undangan tidak ditemukan");
     const body = updateSchema.parse(req.body);
     const { couple, ...rest } = body;
+    // Gating paket: paket PRO tidak boleh memakai template Eksklusif (harga > 100rb)
+    if (rest.templateId) {
+      const tpl = await prisma.template.findUnique({ where: { id: rest.templateId }, select: { priceIdr: true } });
+      if (tpl && owned.package === "PRO" && tpl.priceIdr > 100000) {
+        throw new HttpError(403, "Template Eksklusif hanya tersedia untuk paket Eksklusif.");
+      }
+    }
     const w = await prisma.wedding.update({
       where: { id: req.params.id },
       data: {
@@ -318,6 +354,30 @@ router.get("/public/:slug", async (req, res, next) => {
   try {
     const w = await prisma.wedding.findUnique({
       where: { slug: req.params.slug },
+      include: {
+        couple: true,
+        template: true,
+        events: { orderBy: { date: "asc" } },
+        gallery: { orderBy: { order: "asc" } },
+        gifts: { orderBy: { order: "asc" } },
+        storyChapters: { orderBy: { order: "asc" } },
+        wishes: { where: { status: "PUBLISHED" }, orderBy: { createdAt: "desc" }, take: 50 },
+      },
+    });
+    if (!w) throw new HttpError(404, "Undangan tidak ditemukan");
+    res.json(w);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* Resolusi undangan via custom domain (asdfasd.my.id) — dipakai frontend saat
+   diakses dari domain Eksklusif. Mengembalikan payload yang sama dgn /public/:slug. */
+router.get("/by-domain/:host", async (req, res, next) => {
+  try {
+    const host = req.params.host.toLowerCase().replace(/^www\./, "");
+    const w = await prisma.wedding.findFirst({
+      where: { customDomain: host },
       include: {
         couple: true,
         template: true,

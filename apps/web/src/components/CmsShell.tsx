@@ -24,7 +24,7 @@ export function CmsShell({
   }, {});
 
   return (
-    <div className="min-h-screen grid md:grid-cols-[260px_1fr] bg-cream">
+    <div className="min-h-screen grid md:grid-cols-[260px_1fr] bg-cream doodle-tx">
       <aside className="bg-sepia text-cream-soft py-7 px-5 md:sticky md:top-0 md:h-screen flex flex-col">
         <Link to="/" aria-label="weddQ Beranda" className="shrink-0">
           <Logo size={42} />

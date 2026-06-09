@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import path from "node:path";
+import fs from "node:fs";
 
 import auth from "./routes/auth.js";
 import templates from "./routes/templates.js";
@@ -35,6 +37,25 @@ app.use("/api/rsvp", rsvp);
 app.use("/api/wishes", wishes);
 app.use("/api/admin", admin);
 app.use("/api/whatsapp", whatsapp);
+
+/* Single-origin: sajikan frontend build (SPA) di port yang sama dengan API.
+   Cukup `cloudflared → :PORT` (catch-all). Hanya aktif bila dist tersedia,
+   sehingga mode dev (Vite terpisah) tidak terganggu. */
+const webDist = process.env.WEB_DIST || path.resolve(process.cwd(), "..", "web", "dist");
+if (fs.existsSync(path.join(webDist, "index.html"))) {
+  // Aset ber-hash: cache panjang. index.html: jangan di-cache (di-handle fallback).
+  app.use(express.static(webDist, { index: false, maxAge: "30d", setHeaders: (res, p) => {
+    if (p.endsWith("index.html")) res.setHeader("Cache-Control", "no-cache");
+  } }));
+  // SPA fallback: semua GET non-/api → index.html (routing ditangani React Router).
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(webDist, "index.html"));
+  });
+  console.log(`▸ Serving frontend (SPA) from ${webDist}`);
+} else {
+  console.log("▸ Frontend dist tidak ditemukan — API saja. Jalankan `vite build` di apps/web untuk single-origin.");
+}
 
 app.use(errorHandler);
 

@@ -7,6 +7,9 @@ import { PurnamaRender } from "@/components/PurnamaRender";
 import { KasmaranRender } from "@/components/KasmaranRender";
 import { TerakotaRender } from "@/components/TerakotaRender";
 import { KembangSetamanRender } from "@/components/KembangSetamanRender";
+import { SekarKencanaRender } from "@/components/SekarKencanaRender";
+import { LuminaRender } from "@/components/LuminaRender";
+import { NocturaRender } from "@/components/NocturaRender";
 
 type Template = { id: string; slug: string; name: string; palette: string };
 
@@ -25,6 +28,9 @@ export default function PreviewFrame() {
 
   if (loading || !tpl) return <div className="p-6 text-sm text-sepia-soft">Memuat preview…</div>;
 
+  if (tpl.slug === "lumina") return <LuminaRender data={data} />;
+  if (tpl.slug === "noctura") return <NocturaRender data={data} />;
+  if (tpl.slug === "sekar-kencana") return <SekarKencanaRender data={data} />;
   if (tpl.slug === "mahligai") return <MahligaiRender data={data} />;
   if (tpl.slug === "purnama") return <PurnamaRender data={data} />;
   if (tpl.slug === "kasmaran") return <KasmaranRender data={data} />;

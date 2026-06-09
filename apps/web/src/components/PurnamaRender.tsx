@@ -217,7 +217,7 @@ function Cover({
         }}
       />
 
-      <div className="relative z-10 px-6 max-w-md">
+      <div className="relative z-10 px-6 max-w-md" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.55)" }}>
         <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: CINEMA.accent }}>
           {data.eyebrow}
         </div>
@@ -286,7 +286,7 @@ function Cover({
 function QuoteSection({ quote }: { quote?: string | null }) {
   if (!quote) return null;
   return (
-    <section className="min-h-[80vh] flex items-center justify-center px-6 py-24" style={{ background: CINEMA.bg }}>
+    <section className="flex items-center justify-center px-6 py-14" style={{ background: CINEMA.bg }}>
       <Reveal>
         <div className="max-w-3xl text-center relative">
           <div className="font-serif leading-none opacity-15 absolute -top-12 left-1/2 -translate-x-1/2" style={{ color: CINEMA.accent, fontSize: "180px" }}>
@@ -317,7 +317,7 @@ function CoupleHero({ side, data }: { side: "bride" | "groom"; data: InvitationD
   const photo = isBride ? data.couple.bridePhoto : data.couple.groomPhoto;
 
   return (
-    <section className="relative py-20 px-5" style={{ background: CINEMA.bg }}>
+    <section className="relative py-12 px-5" style={{ background: CINEMA.bg }}>
       <div className="max-w-md mx-auto text-center">
         <Reveal>
           {/* Photo card — contained, not full-bleed */}
@@ -326,7 +326,7 @@ function CoupleHero({ side, data }: { side: "bride" | "groom"; data: InvitationD
             style={{
               width: "100%",
               maxWidth: 320,
-              aspectRatio: "3 / 4",
+              aspectRatio: "1 / 1",
               borderRadius: 14,
               boxShadow: `0 30px 70px -30px rgba(0,0,0,0.9)`,
               border: `1px solid ${CINEMA.rule}`,
@@ -400,7 +400,7 @@ function DateMoment({ primary, couple }: { primary: string; couple: InvitationDa
   return (
     <section
       ref={ref}
-      className="relative min-h-[100vh] flex items-center justify-center px-6 overflow-hidden"
+      className="relative flex items-center justify-center px-6 py-16 overflow-hidden"
       style={{ background: CINEMA.bg }}
     >
       {/* drifting names backdrop */}
@@ -584,7 +584,7 @@ function GallerySlideshow({ gallery }: { gallery: InvitationData["gallery"] }) {
 
   return (
     <section
-      className="relative py-20 px-5"
+      className="relative py-12 px-5"
       style={{ background: CINEMA.bg }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -700,7 +700,7 @@ function RsvpScene({ data, interactive }: { data: InvitationData; interactive: b
   ];
 
   return (
-    <section className="py-24 px-6" style={{ background: CINEMA.panel }}>
+    <section className="py-14 px-6" style={{ background: CINEMA.panel }}>
       <div className="max-w-3xl mx-auto px-5 grid lg:grid-cols-[1fr_2fr] gap-12">
         <Reveal>
           <div>
@@ -828,7 +828,7 @@ function WishesScene({ slug, initial, interactive }: { slug: string; initial: No
   }
 
   return (
-    <section className="py-24 px-6" style={{ background: CINEMA.bg }}>
+    <section className="py-14 px-6" style={{ background: CINEMA.bg }}>
       <div className="max-w-3xl mx-auto px-5">
         <Reveal>
           <div className="text-center">
@@ -881,7 +881,7 @@ function WishesScene({ slug, initial, interactive }: { slug: string; initial: No
 
 function GiftsScene({ gifts }: { gifts: InvitationData["gifts"] }) {
   return (
-    <section className="py-24 px-6" style={{ background: CINEMA.panel }}>
+    <section className="py-14 px-6" style={{ background: CINEMA.panel }}>
       <div className="max-w-3xl mx-auto px-5">
         <Reveal>
           <div className="text-center">
@@ -894,10 +894,8 @@ function GiftsScene({ gifts }: { gifts: InvitationData["gifts"] }) {
         </Reveal>
         <div className="mt-12 flex flex-wrap justify-center gap-5 max-w-5xl mx-auto">
           {gifts.map((g, i) => (
-            <Reveal key={g.id ?? i} delay={i * 100}>
-              <div className="w-full sm:w-[300px] md:w-[320px]">
-                <CineGift g={g} />
-              </div>
+            <Reveal key={g.id ?? i} delay={i * 100} className="w-full md:w-[320px]">
+              <CineGift g={g} />
             </Reveal>
           ))}
         </div>
@@ -956,7 +954,7 @@ function Closing({ data }: { data: InvitationData }) {
   const closing = data.closingSalutation ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh";
   return (
     <section
-      className="relative min-h-[100vh] flex items-center justify-center px-6 text-center overflow-hidden"
+      className="relative flex items-center justify-center px-6 py-20 text-center overflow-hidden"
       style={{
         background: `radial-gradient(circle at 50% 100%, ${CINEMA.panel}, ${CINEMA.bg} 70%)`,
       }}
@@ -988,10 +986,10 @@ function Closing({ data }: { data: InvitationData }) {
           <div className="mt-4 text-[10px] tracking-[0.4em] uppercase" style={{ color: CINEMA.accent }}>Beserta Keluarga</div>
         </Reveal>
         <Reveal delay={700}>
-          <div className="mt-16 inline-flex items-center gap-2 text-xs" style={{ color: CINEMA.inkSoft }}>
+          <a href="/" className="mt-16 inline-flex items-center gap-2 text-xs opacity-90 hover:opacity-100 transition" style={{ color: CINEMA.inkSoft }}>
             <img src="/logo.png" alt="weddQ" style={{ height: 24, width: "auto", objectFit: "contain", filter: "brightness(1.2)" }} />
             Dibuat dengan weddQ
-          </div>
+          </a>
         </Reveal>
       </div>
     </section>

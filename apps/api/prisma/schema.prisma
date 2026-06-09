@@ -66,6 +66,7 @@ model Wedding {
   ownerId           String
   templateId        String?
   status            String   @default("DRAFT")   // DRAFT | PUBLISHED
+  package           String   @default("PRO")     // PRO | EKSKLUSIF — menentukan template yang bisa dipakai
   coverImage        String?
   eyebrow           String   @default("The Wedding Of")
   story             String?                       // markdown sederhana
@@ -75,6 +76,18 @@ model Wedding {
   musicUrl          String?
   primaryColor      String?                       // override palette
   waMessageTemplate String?                       // template pesan WA
+
+  // Custom domain (paket Eksklusif) — Cloudflare for SaaS, proxied
+  customDomain      String?  @unique               // mis. asdfasd.my.id
+  domainStatus      String   @default("NONE")      // NONE | PENDING | ACTIVE | ERROR
+  cfHostnameId      String?                        // Cloudflare custom hostname id
+  domainAddedAt     DateTime?
+
+  // Masa aktif edit (verifikasi bayar manual oleh admin). Lewat tenggat → user
+  // tak bisa edit; undangan publik tetap tayang (tidak dihapus).
+  activeFrom        DateTime?
+  activeUntil       DateTime?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

@@ -20,7 +20,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const u = await login(email, password);
-      nav(u.role === "ADMIN" ? "/admin" : from);
+      nav(u.role === "ADMIN" ? "/dashboard/admin" : from);
     } catch (e) {
       setErr(extractError(e));
     } finally {
@@ -86,7 +86,7 @@ export default function LoginPage() {
         <p className="text-sm text-sepia-soft text-center">
           Belum punya akun?{" "}
           <Link to="/register" className="text-gold-deep underline underline-offset-4">
-            Daftar gratis
+            Daftar
           </Link>
         </p>
 

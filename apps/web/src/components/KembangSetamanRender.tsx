@@ -272,7 +272,7 @@ export function KembangSetamanRender({ data, interactive = false }: { data: Invi
       {!opened ? (
         <Cover data={data} onOpen={() => setOpened(true)} />
       ) : (
-        <>
+        <div className="weddq-reveal">
           <Opening data={data} primary={primary} />
           <Couple data={data} />
           <DateBlock primary={primary} />
@@ -298,7 +298,7 @@ export function KembangSetamanRender({ data, interactive = false }: { data: Invi
           <Wishes slug={data.slug} initial={data.wishes ?? []} interactive={interactive} />
           {data.gifts.length > 0 && <Gifts gifts={data.gifts} />}
           <Closing data={data} />
-        </>
+        </div>
       )}
     </div>
   );
@@ -312,54 +312,41 @@ function Cover({ data, onOpen }: { data: InvitationData; onOpen: () => void }) {
   const guestName = data.guestName ?? null;
 
   return (
-    <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden" style={{ background: `radial-gradient(ellipse at top, ${TONE.blush} 0%, ${TONE.bg} 60%, ${TONE.cream} 100%)` }}>
+    <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden">
+      {cover ? (
+        <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at top, ${TONE.blush} 0%, ${TONE.bg} 60%, ${TONE.cream} 100%)` }} />
+      )}
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${TONE.roseDeep}bf 0%, ${TONE.rose}66 42%, ${TONE.roseDeep}ec 100%)` }} />
       <PetalRain count={18} />
 
       {/* Corner flourishes */}
-      <FloralCorner size={260} className="absolute -top-6 -left-6 opacity-95" />
-      <FloralCorner size={260} mirror className="absolute -top-6 -right-6 opacity-95" />
-      <FloralCorner size={220} className="absolute -bottom-8 -left-8 opacity-85" style={{ transform: "rotate(180deg)" }} />
-      <FloralCorner size={220} mirror className="absolute -bottom-8 -right-8 opacity-85" style={{ transform: "rotate(180deg) scaleX(-1)" }} />
+      <FloralCorner size={260} className="absolute -top-6 -left-6 opacity-90" />
+      <FloralCorner size={260} mirror className="absolute -top-6 -right-6 opacity-90" />
+      <FloralCorner size={220} className="absolute -bottom-8 -left-8 opacity-80" style={{ transform: "rotate(180deg)" }} />
+      <FloralCorner size={220} mirror className="absolute -bottom-8 -right-8 opacity-80" style={{ transform: "rotate(180deg) scaleX(-1)" }} />
 
-      <div className="relative z-10 max-w-md w-full mx-auto text-center px-8">
-        {/* photo medallion */}
-        {cover && (
-          <div className="relative mx-auto mb-6" style={{ width: 240, height: 320, animation: "ks-bloom 1.2s ease both" }}>
-            <div className="absolute inset-0" style={{
-              background: TONE.cream,
-              borderRadius: "120px 120px 12px 12px",
-              padding: 8,
-              boxShadow: `0 24px 50px -20px ${TONE.roseDeep}44`,
-            }}>
-              <div className="w-full h-full overflow-hidden" style={{ borderRadius: "112px 112px 6px 6px" }}>
-                <img src={cover} alt="" className="w-full h-full object-cover" />
-              </div>
-            </div>
-            {/* Floating melati on top */}
-            <Melati size={50} className="absolute -top-3 -left-2" style={{ animation: "ks-drift 6s ease-in-out infinite" }} />
-            <Kantil size={56} className="absolute -bottom-3 -right-3" style={{ animation: "ks-drift 7s ease-in-out infinite reverse" }} />
-          </div>
-        )}
-
-        <div className="text-[11px] tracking-[0.45em] uppercase" style={{ color: TONE.rose }}>{data.eyebrow}</div>
-        <h1 className="font-serif mt-3" style={{ color: TONE.ink, fontSize: "clamp(40px, 9vw, 64px)", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
+      <div className="relative z-10 max-w-md w-full mx-auto text-center px-8" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.55)" }}>
+        <div className="text-[11px] tracking-[0.45em] uppercase" style={{ color: TONE.cream }}>{data.eyebrow}</div>
+        <h1 className="font-serif mt-3" style={{ color: TONE.cream, fontSize: "clamp(40px, 9vw, 64px)", lineHeight: 1.05, letterSpacing: "-0.01em" }}>
           {data.couple.brideShort}
-          <div className="font-serif italic text-[0.55em] my-1" style={{ color: TONE.rose }}>&amp;</div>
+          <div className="font-serif italic text-[0.55em] my-1" style={{ color: TONE.blush }}>&amp;</div>
           {data.couple.groomShort}
         </h1>
 
-        <ScallopDivider width={180} color={TONE.rose} className="mx-auto mt-4" />
+        <ScallopDivider width={180} color={TONE.cream} className="mx-auto mt-4" />
 
         {p && (
-          <div className="mt-5 inline-block px-5 py-2 font-serif italic" style={{ color: TONE.mauve, background: TONE.cream + "cc", borderRadius: 999, border: `1px solid ${TONE.rule}` }}>
+          <div className="mt-5 inline-block px-5 py-2 font-serif italic" style={{ color: TONE.cream, background: "rgba(255,255,255,0.12)", borderRadius: 999, border: `1px solid ${TONE.cream}66`, backdropFilter: "blur(6px)" }}>
             {p.weekday}, {p.day} {p.month} {p.year}
           </div>
         )}
 
         {guestName && (
           <div className="mt-8">
-            <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.rose }}>Kepada Yang Terhormat</div>
-            <div className="font-serif italic text-2xl mt-1" style={{ color: TONE.ink }}>{guestName}</div>
+            <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.blush }}>Kepada Yang Terhormat</div>
+            <div className="font-serif italic text-2xl mt-1" style={{ color: TONE.cream }}>{guestName}</div>
           </div>
         )}
 
@@ -367,8 +354,8 @@ function Cover({ data, onOpen }: { data: InvitationData; onOpen: () => void }) {
           onClick={onOpen}
           className="mt-8 inline-flex items-center gap-3 px-8 py-3 transition hover:scale-105"
           style={{
-            background: TONE.roseDeep,
-            color: TONE.cream,
+            background: TONE.cream,
+            color: TONE.roseDeep,
             borderRadius: 999,
             boxShadow: `0 14px 36px -14px ${TONE.roseDeep}99`,
           }}
@@ -388,7 +375,7 @@ function Opening({ data, primary }: { data: InvitationData; primary: string }) {
   const p = parts(primary);
   const opening = data.openingSalutation ?? "Bismillahirrahmanirrahim";
   return (
-    <section className="relative py-24 px-6 overflow-hidden" style={{ background: TONE.bg }}>
+    <section className="relative py-14 px-6 overflow-hidden" style={{ background: TONE.bg }}>
       <Rose size={180} className="absolute -top-8 -right-8 opacity-50" />
       <Rose size={140} className="absolute -bottom-6 -left-6 opacity-40" />
       <div ref={ref} className={`max-w-3xl mx-auto text-center ks-reveal ${seen ? "in" : ""}`}>
@@ -414,7 +401,7 @@ function Opening({ data, primary }: { data: InvitationData; primary: string }) {
 function Couple({ data }: { data: InvitationData }) {
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section className="relative py-24 px-6 overflow-hidden" style={{ background: `linear-gradient(180deg, ${TONE.bg} 0%, ${TONE.blush} 100%)` }}>
+    <section className="relative py-14 px-6 overflow-hidden" style={{ background: `linear-gradient(180deg, ${TONE.bg} 0%, ${TONE.blush} 100%)` }}>
       <LeafVine width={400} className="absolute top-0 left-1/2 -translate-x-1/2 opacity-50" />
       <div ref={ref} className={`max-w-5xl mx-auto ks-reveal ${seen ? "in" : ""}`}>
         <div className="text-center mb-14">
@@ -442,7 +429,7 @@ function Couple({ data }: { data: InvitationData }) {
 function CouplePerson({ photo, name, parents, ig, role }: { photo?: string | null; name: string; parents?: string | null; ig?: string | null; role: string }) {
   return (
     <article className="relative text-center">
-      <div className="relative mx-auto" style={{ width: 220, height: 280 }}>
+      <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
         <Kantil size={48} className="absolute -top-3 -left-3 z-10" accent={TONE.rose} />
         <Melati size={42} className="absolute -bottom-3 -right-3 z-10" />
         <div className="absolute inset-0" style={{
@@ -483,7 +470,7 @@ function DateBlock({ primary }: { primary: string }) {
   const p = parts(primary);
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section ref={ref} className={`relative py-24 px-6 text-center overflow-hidden ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.blush }}>
+    <section ref={ref} className={`relative py-14 px-6 text-center overflow-hidden ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.blush }}>
       <Rose size={180} className="absolute top-8 left-8 opacity-50" />
       <Rose size={180} className="absolute bottom-8 right-8 opacity-50" />
       <div className="relative max-w-3xl mx-auto">
@@ -528,7 +515,7 @@ function DateBlock({ primary }: { primary: string }) {
 function Events({ events }: { events: InvitationData["events"] }) {
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section ref={ref} className={`relative py-24 px-6 ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.bg }}>
+    <section ref={ref} className={`relative py-14 px-6 ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.bg }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.rose }}>Rangkaian Acara</div>
@@ -590,7 +577,7 @@ function Gallery({ gallery }: { gallery: InvitationData["gallery"] }) {
   const { ref, seen } = useReveal<HTMLDivElement>();
 
   return (
-    <section ref={ref} className={`relative py-24 px-6 ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.bg }}>
+    <section ref={ref} className={`relative py-14 px-6 ks-reveal ${seen ? "in" : ""}`} style={{ background: TONE.bg }}>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.rose }}>Album Kenangan</div>
@@ -674,7 +661,7 @@ function Rsvp({ data, interactive }: { data: InvitationData; interactive: boolea
   ];
 
   return (
-    <section className="relative py-24 px-6 overflow-hidden" style={{ background: TONE.blush }}>
+    <section className="relative py-14 px-6 overflow-hidden" style={{ background: TONE.blush }}>
       <Rose size={160} className="absolute -top-6 -left-6 opacity-50" />
       <Rose size={160} className="absolute -bottom-6 -right-6 opacity-50" />
       <div className="relative max-w-2xl mx-auto">
@@ -801,7 +788,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
   }
 
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.bg }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.bg }}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.rose }}>Buku Tamu</div>
@@ -847,7 +834,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
 
 function Gifts({ gifts }: { gifts: InvitationData["gifts"] }) {
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.blush }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.blush }}>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.roseDeep }}>Tanda Kasih</div>
@@ -896,7 +883,7 @@ function GiftCard({ g }: { g: { kind: string; bankName: string; number: string; 
 function Closing({ data }: { data: InvitationData }) {
   const closing = data.closingSalutation ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh";
   return (
-    <section className="relative pt-24 pb-12 px-6 overflow-hidden text-center" style={{ background: `linear-gradient(180deg, ${TONE.bg} 0%, ${TONE.blush} 100%)` }}>
+    <section className="relative pt-14 pb-8 px-6 overflow-hidden text-center" style={{ background: `linear-gradient(180deg, ${TONE.bg} 0%, ${TONE.blush} 100%)` }}>
       <FloralCorner size={220} className="absolute -top-6 -left-6 opacity-90" />
       <FloralCorner size={220} mirror className="absolute -top-6 -right-6 opacity-90" />
       <PetalRain count={10} />
@@ -913,10 +900,10 @@ function Closing({ data }: { data: InvitationData }) {
         </div>
         <div className="text-[10px] tracking-[0.3em] uppercase mt-4" style={{ color: TONE.rose }}>Beserta Keluarga</div>
 
-        <div className="mt-14 inline-flex items-center gap-2 text-xs" style={{ color: TONE.inkSoft }}>
+        <a href="/" className="mt-14 inline-flex items-center gap-2 text-xs opacity-90 hover:opacity-100 transition" style={{ color: TONE.inkSoft }}>
           <img src="/logo.png" alt="weddQ" style={{ height: 22, width: "auto", objectFit: "contain" }} />
           Dibuat dengan weddQ
-        </div>
+        </a>
       </div>
     </section>
   );

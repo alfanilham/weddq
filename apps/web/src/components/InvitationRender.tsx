@@ -253,7 +253,7 @@ export function InvitationRender({
       {!opened ? (
         <Cover c={c} data={data} onOpen={() => setOpened(true)} />
       ) : (
-        <>
+        <div className="weddq-reveal">
           <Opening c={c} data={data} />
           <Couple c={c} couple={data.couple} />
           <Countdown c={c} primary={primary} cd={cd} couple={data.couple} />
@@ -279,7 +279,7 @@ export function InvitationRender({
           <Wishes c={c} slug={data.slug} initial={data.wishes ?? []} interactive={interactive} />
           {data.gifts.length > 0 && <Gifts c={c} gifts={data.gifts} />}
           <Closing c={c} data={data} />
-        </>
+        </div>
       )}
     </div>
   );
@@ -315,7 +315,7 @@ function Cover({ c, data, onOpen }: { c: Palette; data: InvitationData; onOpen: 
       <FloralCorner color={c.accent} size={150} className="absolute bottom-4 right-4 opacity-80" style={{ transform: "scale(-1, -1)" }} />
 
       {/* Content */}
-      <div className="relative z-10 pb-16 pt-32 px-6 w-full">
+      <div className="relative z-10 pb-16 pt-32 px-6 w-full" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.5)" }}>
         <div className="max-w-md mx-auto">
           <Monogram a={data.couple.brideShort} b={data.couple.groomShort} color={c.accent} size={64} />
           <div className="mt-4 text-[11px] uppercase tracking-[0.4em]" style={{ color: c.accent }}>{data.eyebrow}</div>
@@ -369,7 +369,7 @@ function Cover({ c, data, onOpen }: { c: Palette; data: InvitationData; onOpen: 
 
 function Opening({ c, data }: { c: Palette; data: InvitationData }) {
   return (
-    <section className="relative text-center py-20 px-6 overflow-hidden">
+    <section className="relative text-center py-12 px-6 overflow-hidden">
       <div className="absolute top-6 left-6 opacity-30"><FloralCorner color={c.accent} size={120} /></div>
       <div className="absolute bottom-6 right-6 opacity-30"><FloralCorner color={c.accent} size={120} style={{ transform: "scale(-1, -1)" }} /></div>
       <div className="relative max-w-2xl mx-auto">
@@ -863,7 +863,7 @@ function Gifts({ c, gifts }: { c: Palette; gifts: InvitationData["gifts"] }) {
       </p>
       <div className="mt-10 flex flex-wrap justify-center gap-5 max-w-4xl mx-auto">
         {gifts.map((g, i) => (
-          <div key={g.id ?? i} className="w-full sm:w-[300px] md:w-[320px]">
+          <div key={g.id ?? i} className="w-full md:w-[320px]">
             <GiftCard c={c} g={g} />
           </div>
         ))}
@@ -923,7 +923,7 @@ function Closing({ c, data }: { c: Palette; data: InvitationData }) {
   const couple = data.couple;
   const closing = data.closingSalutation ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh";
   return (
-    <section className="relative py-20 px-6 text-center overflow-hidden">
+    <section className="relative py-12 px-6 text-center overflow-hidden">
       <div className="absolute inset-0 opacity-25" style={{
         backgroundImage: `radial-gradient(circle at 50% 0%, ${withAlpha(c.accent, 0.5)}, transparent 60%)`,
       }} />

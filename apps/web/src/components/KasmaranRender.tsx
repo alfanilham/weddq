@@ -381,7 +381,7 @@ function Cover({ data, primary, onOpen, opening }: { data: InvitationData; prima
       <FloralCornerOrn size={200} className="absolute bottom-0 left-0 opacity-65" style={{ transform: "scaleY(-1)" }} />
       <FloralCornerOrn size={200} className="absolute bottom-0 right-0 opacity-65" style={{ transform: "scale(-1, -1)" }} />
 
-      <div className="relative z-10 text-center px-6 max-w-md">
+      <div className="relative z-10 text-center px-6 max-w-md" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.55)" }}>
         <div className="flex justify-center mb-6">
           <WaxSeal size={66} label={initials} />
         </div>
@@ -443,7 +443,7 @@ function Cover({ data, primary, onOpen, opening }: { data: InvitationData; prima
 
 function Opening({ data }: { data: InvitationData }) {
   return (
-    <section className="relative py-28 px-6 overflow-hidden">
+    <section className="relative py-16 px-6 overflow-hidden">
       <FloralCornerOrn className="absolute top-6 left-6 opacity-40" size={180} />
       <FloralCornerOrn className="absolute bottom-6 right-6 opacity-40" size={180} style={{ transform: "scale(-1, -1)" }} />
 
@@ -471,7 +471,7 @@ function Opening({ data }: { data: InvitationData }) {
 
 function Couple({ data }: { data: InvitationData }) {
   return (
-    <section className="relative py-20 px-6">
+    <section className="relative py-12 px-6">
       <VineBorder side="left" />
       <VineBorder side="right" />
       <div className="container-narrow grid md:grid-cols-[1fr_auto_1fr] gap-10 items-center">
@@ -500,7 +500,7 @@ function CouplePerson({ side, data }: { side: "bride" | "groom"; data: Invitatio
   return (
     <Reveal delay={isBride ? 0 : 200}>
       <div className="text-center">
-        <div className="relative mx-auto w-56 h-72">
+        <div className="relative mx-auto w-56 h-56">
           {/* ornate frame around portrait */}
           <div className="absolute inset-0 rounded-[8px] overflow-hidden" style={{ background: TONE.panel }}>
             {photo ? (
@@ -560,7 +560,7 @@ function DateScene({ primary, couple }: { primary: string; couple: InvitationDat
   const dp = parts(primary);
 
   return (
-    <section className="relative py-24 px-6 overflow-hidden" style={{ background: TONE.bgDark }}>
+    <section className="relative py-14 px-6 overflow-hidden" style={{ background: TONE.bgDark }}>
       <FloralCornerOrn className="absolute top-4 left-4 opacity-45" size={180} />
       <FloralCornerOrn className="absolute top-4 right-4 opacity-45" size={180} style={{ transform: "scaleX(-1)" }} />
 
@@ -697,7 +697,7 @@ function Gallery({ gallery }: { gallery: InvitationData["gallery"] }) {
   }, [gallery.length, paused]);
 
   return (
-    <section className="relative py-20 overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+    <section className="relative py-12 overflow-hidden" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <Reveal>
         <div className="text-center px-6 mb-10">
           <div className="text-[10px] tracking-[0.45em] uppercase" style={{ color: TONE.gold }}>Galeri</div>
@@ -817,7 +817,7 @@ function Rsvp({ data, interactive }: { data: InvitationData; interactive: boolea
   );
 
   return (
-    <section className="relative py-24 px-6">
+    <section className="relative py-14 px-6">
       <VineBorder side="left" />
       <VineBorder side="right" />
       <Reveal>
@@ -963,7 +963,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
   }
 
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.bgDark }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.bgDark }}>
       <Reveal>
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.45em] uppercase" style={{ color: TONE.gold }}>Buku Tamu</div>
@@ -1015,7 +1015,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
 
 function Gifts({ gifts }: { gifts: InvitationData["gifts"] }) {
   return (
-    <section className="relative py-24 px-6">
+    <section className="relative py-14 px-6">
       <VineBorder side="left" opacity={0.5} />
       <VineBorder side="right" opacity={0.5} />
       <Reveal>
@@ -1030,10 +1030,8 @@ function Gifts({ gifts }: { gifts: InvitationData["gifts"] }) {
       </Reveal>
       <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-5">
         {gifts.map((g, i) => (
-          <Reveal key={g.id ?? i} delay={i * 100}>
-            <div className="w-full sm:w-[300px] md:w-[320px]">
-              <GiftEnvelope g={g} />
-            </div>
+          <Reveal key={g.id ?? i} delay={i * 100} className="w-full md:w-[320px]">
+            <GiftEnvelope g={g} />
           </Reveal>
         ))}
       </div>
@@ -1077,7 +1075,7 @@ function Closing({ data }: { data: InvitationData }) {
   const closing = data.closingSalutation ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh";
   return (
     <section
-      className="relative py-28 px-6 text-center overflow-hidden"
+      className="relative py-16 px-6 text-center overflow-hidden"
       style={{ background: `radial-gradient(circle at 50% 100%, ${TONE.panel}, ${TONE.bgDark} 70%)` }}
     >
       <FloralCornerOrn className="absolute top-4 left-1/2 -translate-x-1/2 opacity-35" size={200} />
@@ -1103,10 +1101,10 @@ function Closing({ data }: { data: InvitationData }) {
             <WaxSeal size={70} label={`${data.couple.brideShort[0]}&${data.couple.groomShort[0]}`} />
           </div>
 
-          <div className="mt-10 inline-flex items-center gap-2 text-xs" style={{ color: TONE.inkSoft }}>
+          <a href="/" className="mt-10 inline-flex items-center gap-2 text-xs opacity-90 hover:opacity-100 transition" style={{ color: TONE.inkSoft }}>
             <img src="/logo.png" alt="weddQ" style={{ height: 22, width: "auto", objectFit: "contain", filter: "brightness(1.4)" }} />
             Dibuat dengan weddQ
-          </div>
+          </a>
         </div>
       </Reveal>
     </section>

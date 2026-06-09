@@ -194,7 +194,7 @@ export function TerakotaRender({ data, interactive = false }: { data: Invitation
       {!opened ? (
         <Cover data={data} onOpen={() => setOpened(true)} />
       ) : (
-        <>
+        <div className="weddq-reveal">
           <Opening data={data} primary={primary} />
           <Couple data={data} />
           <DateBlock primary={primary} />
@@ -220,7 +220,7 @@ export function TerakotaRender({ data, interactive = false }: { data: Invitation
           <Wishes slug={data.slug} initial={data.wishes ?? []} interactive={interactive} />
           {data.gifts.length > 0 && <Gifts gifts={data.gifts} />}
           <Closing data={data} />
-        </>
+        </div>
       )}
     </div>
   );
@@ -235,13 +235,14 @@ function Cover({ data, onOpen }: { data: InvitationData; onOpen: () => void }) {
 
   return (
     <section className="relative min-h-[100svh] flex flex-col items-center justify-between overflow-hidden">
-      <div className="absolute inset-0">
-        <HorizonLayers />
-      </div>
-      {cover && (
-        <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover mix-blend-multiply opacity-50" />
+      {cover ? (
+        <img src={cover} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      ) : (
+        <div className="absolute inset-0">
+          <HorizonLayers />
+        </div>
       )}
-      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${TONE.sky}88 0%, ${TONE.rose}44 45%, ${TONE.clayDark}cc 100%)` }} />
+      <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${TONE.clayDark}aa 0%, ${TONE.rose}55 42%, ${TONE.clayDark}ec 100%)` }} />
 
       {/* Sun rising */}
       <div className="absolute" style={{ top: "16%", left: "50%", transform: "translateX(-50%)", animation: "tk-glow 4s ease-in-out infinite" }}>
@@ -252,11 +253,11 @@ function Cover({ data, onOpen }: { data: InvitationData; onOpen: () => void }) {
       <PalmLeaves size={200} className="absolute -left-6 bottom-20 opacity-60" color={TONE.clayDark} />
       <PalmLeaves size={200} className="absolute -right-6 bottom-20 opacity-60" color={TONE.clayDark} />
 
-      <div className="relative pt-10 z-10">
+      <div className="relative pt-10 z-10" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.55)" }}>
         <div className="text-[11px] tracking-[0.45em] uppercase" style={{ color: TONE.cream }}>{data.eyebrow}</div>
       </div>
 
-      <div className="relative z-10 text-center px-6 pb-16" style={{ animation: "tk-rise 1.2s ease both" }}>
+      <div className="relative z-10 text-center px-6 pb-16" style={{ animation: "tk-rise 1.2s ease both", textShadow: "0 2px 16px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.55)" }}>
         <div className="font-serif text-cream" style={{ color: TONE.cream, fontSize: "clamp(46px, 11vw, 96px)", lineHeight: 1, letterSpacing: "-0.02em" }}>
           {data.couple.brideShort}
         </div>
@@ -317,7 +318,7 @@ function Opening({ data, primary }: { data: InvitationData; primary: string }) {
   const p = parts(primary);
   const opening = data.openingSalutation ?? "Bismillahirrahmanirrahim";
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.paper }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.paper }}>
       <TileBorder color={TONE.clay} className="absolute top-0 left-0 right-0 opacity-50" />
       <div ref={ref} className={`max-w-3xl mx-auto text-center tk-reveal ${seen ? "in" : ""}`}>
         <div className="inline-block mb-6">
@@ -345,7 +346,7 @@ function Opening({ data, primary }: { data: InvitationData; primary: string }) {
 function Couple({ data }: { data: InvitationData }) {
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.sand }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.sand }}>
       {/* Texture */}
       <div className="absolute inset-0 pointer-events-none opacity-20" style={{
         backgroundImage: `radial-gradient(${TONE.clayDark}33 1px, transparent 1px)`,
@@ -378,7 +379,7 @@ function Couple({ data }: { data: InvitationData }) {
 function CouplePerson({ photo, name, parents, ig, role }: { photo?: string | null; name: string; parents?: string | null; ig?: string | null; role: string }) {
   return (
     <article className="relative text-center">
-      <div className="relative mx-auto" style={{ width: 240, height: 280 }}>
+      <div className="relative mx-auto" style={{ width: 240, height: 240 }}>
         {/* Arched photo frame */}
         <div className="absolute inset-0" style={{
           background: TONE.cream,
@@ -419,7 +420,7 @@ function DateBlock({ primary }: { primary: string }) {
   const p = parts(primary);
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section ref={ref} className={`relative py-24 px-6 text-center tk-reveal ${seen ? "in" : ""}`} style={{ background: `linear-gradient(180deg, ${TONE.sand} 0%, ${TONE.paper} 100%)` }}>
+    <section ref={ref} className={`relative py-14 px-6 text-center tk-reveal ${seen ? "in" : ""}`} style={{ background: `linear-gradient(180deg, ${TONE.sand} 0%, ${TONE.paper} 100%)` }}>
       <div className="absolute inset-x-0 top-0">
         <TileBorder color={TONE.clay} />
       </div>
@@ -467,7 +468,7 @@ function DateBlock({ primary }: { primary: string }) {
 function Events({ events }: { events: InvitationData["events"] }) {
   const { ref, seen } = useReveal<HTMLDivElement>();
   return (
-    <section ref={ref} className={`relative py-24 px-6 tk-reveal ${seen ? "in" : ""}`} style={{ background: TONE.paper }}>
+    <section ref={ref} className={`relative py-14 px-6 tk-reveal ${seen ? "in" : ""}`} style={{ background: TONE.paper }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.clay }}>Rangkaian Acara</div>
@@ -528,7 +529,7 @@ function Gallery({ gallery }: { gallery: InvitationData["gallery"] }) {
   }, [gallery]);
 
   return (
-    <section ref={ref} className={`relative py-24 px-6 tk-reveal ${seen ? "in" : ""}`} style={{ background: TONE.paper }}>
+    <section ref={ref} className={`relative py-14 px-6 tk-reveal ${seen ? "in" : ""}`} style={{ background: TONE.paper }}>
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.clay }}>Album Kenangan</div>
@@ -595,7 +596,7 @@ function Rsvp({ data, interactive }: { data: InvitationData; interactive: boolea
   ];
 
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.sand }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.sand }}>
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.clayDark }}>Konfirmasi Kehadiran</div>
@@ -720,7 +721,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
   }
 
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.paper }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.paper }}>
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.clay }}>Buku Tamu</div>
@@ -765,7 +766,7 @@ function Wishes({ slug, initial, interactive }: { slug: string; initial: NonNull
 
 function Gifts({ gifts }: { gifts: InvitationData["gifts"] }) {
   return (
-    <section className="relative py-24 px-6" style={{ background: TONE.sand }}>
+    <section className="relative py-14 px-6" style={{ background: TONE.sand }}>
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <div className="text-[10px] tracking-[0.4em] uppercase" style={{ color: TONE.clayDark }}>Tanda Kasih</div>
@@ -812,7 +813,7 @@ function GiftCard({ g }: { g: { kind: string; bankName: string; number: string; 
 function Closing({ data }: { data: InvitationData }) {
   const closing = data.closingSalutation ?? "Wassalamu'alaikum Warahmatullahi Wabarakatuh";
   return (
-    <section className="relative pt-24 pb-12 px-6 overflow-hidden text-center" style={{ background: TONE.clayDark, color: TONE.cream }}>
+    <section className="relative pt-14 pb-8 px-6 overflow-hidden text-center" style={{ background: TONE.clayDark, color: TONE.cream }}>
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <HorizonLayers />
       </div>
@@ -829,10 +830,10 @@ function Closing({ data }: { data: InvitationData }) {
         </div>
         <div className="text-[10px] tracking-[0.3em] uppercase mt-4" style={{ color: TONE.sky }}>Beserta Keluarga</div>
 
-        <div className="mt-14 inline-flex items-center gap-2 text-xs opacity-70">
+        <a href="/" className="mt-14 inline-flex items-center gap-2 text-xs opacity-70 hover:opacity-100 transition">
           <img src="/logo.png" alt="weddQ" style={{ height: 22, width: "auto", objectFit: "contain", filter: "brightness(0) invert(1)" }} />
           Dibuat dengan weddQ
-        </div>
+        </a>
       </div>
     </section>
   );
